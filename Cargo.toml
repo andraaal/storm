@@ -7,3 +7,4 @@ edition = "2024"
 slotmap = "1.1"
 flagset = "0.4"
 thiserror = "2.0"
+derive_more = {version = "2.1", features = ["from", "try_into"]}

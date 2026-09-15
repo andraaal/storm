@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
 use crate::{
-    game::Game, rules::condition::Condition, rules::game_action::GameAction, rules::id::ObjectId,
+    game::Game, rules::condition::Condition, rules::game_action::GameAction, rules::id::AnyId,
 };
 
 #[derive(Clone)]
 pub(crate) struct ReplacementEffect {
-    source: ObjectId,
+    source: AnyId,
     check: Rc<dyn Fn(&mut Game, &GameAction)>,
     apply: Rc<dyn Fn(&mut Game, &mut GameAction)>,
     end: Condition,

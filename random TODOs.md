@@ -1,6 +1,10 @@
 # Random TODOs
-1. Create prelude
-2. Create views over GameObjects that guarantee it is in a certain zone an rust knows this
+1. Create prelude and fix imports
 3. Check for triggered abilities AFTER executing game actions; just keep the action objects around
-4. Remove the bookkeeping from the move game action and maybe make internal triggers or lazy initialized lists
-5. Create efficient mutable iterator for GameObjects with a list of ids
+7. Create gameactions for DrawCard and DrawCardSingular
+8. fix folder structure: cards, context, controller, rules
+9. Don't copy targets for stack objects. Implement a IdRef / TargetRef for holding arbitrary mutable refs (what about players?)
+10. Support combining multiple StackDefinitions
+11. User proc macro for nicer StackDefiniton enum generation
+12. Add special casing to avoid single item enums (T,) in Selector + its Output
+13. Create specialized Damage Target

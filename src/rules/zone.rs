@@ -2,22 +2,24 @@ use flagset::FlagSet;
 
 use crate::rules::player::PlayerId;
 
-/// This enum represents the different zones + zone-specific data, that can only exist on objects that are in that zone. For example only objects on the battlefield can be tapped.
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum Zone {
-    Battlefield(BattlefieldInfo),
-    Hand { player: PlayerId },
-    Library { player: PlayerId },
-    Graveyard { player: PlayerId },
-    Exile { player: PlayerId },
-    Stack { controller: PlayerId },
-}
-
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BattlefieldInfo {
     pub(crate) tapped: bool,
     pub(crate) marked_damage: u32,
+    pub(crate) damaged_by_deathtouch: bool,
     pub(crate) controller: PlayerId,
+    pub(crate) owner: PlayerId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ExileInfo {
+    pub(crate) owner: PlayerId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct StackInfo {
+    pub(crate) controller: PlayerId,
+    pub(crate) owner: PlayerId,
 }
 
 /// Identifies a specific zone, while ZoneKind specifies a type of zone. For Stack and Battlefield there is no difference since only one of those exists, but for the other zones it also contains the player that this zone belongs to.
@@ -53,30 +55,6 @@ flagset::flags! {
         Graveyard,
         Exile,
         Stack,
-    }
-}
-
-impl Zone {
-    pub(crate) fn kind(&self) -> ZoneKind {
-        match self {
-            Zone::Battlefield { .. } => ZoneKind::Battlefield,
-            Zone::Hand { .. } => ZoneKind::Hand,
-            Zone::Library { .. } => ZoneKind::Library,
-            Zone::Graveyard { .. } => ZoneKind::Graveyard,
-            Zone::Exile { .. } => ZoneKind::Exile,
-            Zone::Stack { .. } => ZoneKind::Stack,
-        }
-    }
-
-    pub(crate) fn id(&self) -> ZoneId {
-        match self {
-            Zone::Battlefield { .. } => ZoneId::Battlefield,
-            Zone::Hand { player } => ZoneId::Hand(*player),
-            Zone::Library { player } => ZoneId::Library(*player),
-            Zone::Graveyard { player } => ZoneId::Graveyard(*player),
-            Zone::Exile { player } => ZoneId::Exile(*player),
-            Zone::Stack { .. } => ZoneId::Stack,
-        }
     }
 }
 

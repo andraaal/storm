@@ -1,37 +1,396 @@
-use std::{collections::HashSet, range::Range};
+use std::{fmt::Debug, range::Range};
 
 use crate::{
     game::Game,
     mana::ManaColor,
     rules::{
-        id::{ObjectId, StackId},
+        id::{
+            AbilityStackId, BattlefieldId, DrawGraveyardId, DrawHandId, DrawLibraryId, ExileId,
+            PlayGraveyardId, PlayHandId, PlayLibraryId, SpellStackId,
+        },
         player::PlayerId,
-        zone::Zone,
+        target::{AnyTarget, Target},
     },
 };
 
+#[derive(PartialEq)]
+pub struct Choice<T: PartialEq> {
+    option: T,
+}
+
+impl<T: PartialEq> Choice<T> {
+    pub fn id(&self) -> &T {
+        &self.option
+    }
+}
+
+fn cast<T: PartialEq + Into<U> + Copy, U: PartialEq>(choices: &[Choice<T>]) -> Vec<Choice<U>> {
+    choices
+        .iter()
+        .map(|c| Choice {
+            option: (*c.id()).into(),
+        })
+        .collect()
+}
+
+fn try_cast<T: PartialEq + TryInto<U> + Copy, U: PartialEq>(
+    choices: Vec<Choice<T>>,
+) -> Vec<Choice<U>>
+where
+    <T as TryInto<U>>::Error: Debug,
+{
+    choices
+        .iter()
+        .map(|c| Choice {
+            option: (*c.id())
+                .try_into()
+                .expect("User returned invalid type choice"),
+        })
+        .collect()
+}
+
 pub trait Input {
-    fn choose_objects(
+    fn choose_battlefield_cancellable(
         &mut self,
         game: &Game,
-        choices: &[ObjectId],
-        from: Zone,
+        choices: &[Choice<BattlefieldId>],
         range: Range<usize>,
-    ) -> Vec<ObjectId>;
-    fn choose_player(&mut self, game: &Game) -> PlayerId;
-    fn choose_color(&mut self, game: &Game) -> ManaColor;
-    fn choose_number(&mut self, game: &Game, range: Range<usize>) -> usize;
-    fn choose_stack_objects(
+    ) -> Option<Vec<Choice<BattlefieldId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_battlefield(
         &mut self,
         game: &Game,
-        choices: &[StackId],
-        amount: usize,
-    ) -> Vec<StackId>;
-    fn take_action(&mut self, active_player: PlayerId);
+        choices: &[Choice<BattlefieldId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<BattlefieldId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_exile_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<ExileId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<ExileId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_exile(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<ExileId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<ExileId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_stack_spell_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<SpellStackId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<SpellStackId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_stack_spell(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<SpellStackId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<SpellStackId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_play_hand_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayHandId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<PlayHandId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_play_hand(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayHandId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<PlayHandId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_draw_hand_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawHandId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<DrawHandId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_draw_hand(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawHandId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<DrawHandId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_play_graveyard_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayGraveyardId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<PlayGraveyardId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_play_graveyard(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayGraveyardId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<PlayGraveyardId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_draw_graveyard_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawGraveyardId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<DrawGraveyardId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_draw_graveyard(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawGraveyardId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<DrawGraveyardId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_play_library_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayLibraryId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<PlayLibraryId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_play_library(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayLibraryId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<PlayLibraryId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_draw_library_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawLibraryId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<DrawLibraryId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_draw_library(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<DrawLibraryId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<DrawLibraryId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_spell_stack_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<SpellStackId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<SpellStackId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_spell_stack(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<SpellStackId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<SpellStackId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_ability_stack_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<AbilityStackId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<AbilityStackId>>> {
+        Some(try_cast(self.choose_any_cancellable(
+            game,
+            &cast(choices),
+            range,
+        )?))
+    }
+
+    fn choose_ability_stack(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<AbilityStackId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<AbilityStackId>> {
+        try_cast(self.choose_any(game, &cast(choices), range))
+    }
+
+    fn choose_any_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<AnyTarget>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<AnyTarget>>>;
+
+    fn choose_any(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<AnyTarget>],
+        range: Range<usize>,
+    ) -> Vec<Choice<AnyTarget>>;
+    fn choose_player(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayerId>],
+        range: Range<usize>,
+    ) -> Vec<Choice<PlayerId>>;
+    fn choose_player_cancellable(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayerId>],
+        range: Range<usize>,
+    ) -> Option<Vec<Choice<PlayerId>>>;
+    fn choose_color(&mut self, game: &Game) -> ManaColor;
+    fn choose_color_cancellable(&mut self, game: &Game) -> Option<ManaColor>;
+    fn choose_number_cancellable(&mut self, game: &Game, range: Range<usize>) -> Option<usize>;
+    fn choose_number(&mut self, game: &Game, range: Range<usize>) -> usize;
+    fn take_action(&mut self);
 }
 
 pub struct Controller {
     pub(crate) input: Box<dyn Input>,
+}
+
+fn validate<T: PartialEq>(
+    choices: Vec<Choice<T>>,
+    range: Range<usize>,
+    input: Vec<Choice<T>>,
+) -> Vec<T> {
+    if range.is_empty() {
+        panic!("Invalid requested number of choices: range is empty");
+    }
+
+    if !range.contains(&input.len()) {
+        panic!("Invalid number of objects chosen");
+    }
+    if input.iter().any(|choice| !choices.contains(choice)) {
+        panic!("Invalid object chosen");
+    }
+    // Check that all targets are unique
+    for i in 0..input.len() {
+        for j in (i + 1)..input.len() {
+            if input[i] == input[j] {
+                panic!("Duplicate objects chosen (or duplicates in target selection)");
+            }
+        }
+    }
+    input.into_iter().map(|Choice { option }| option).collect()
+}
+
+macro_rules! impl_choose {
+    (
+        $ty:ty,
+        $choose:ident,
+        $choose_cancellable:ident
+    ) => {
+        pub(crate) fn $choose(
+            &mut self,
+            game: &Game,
+            choices: Vec<$ty>,
+            range: Range<usize>,
+        ) -> Vec<$ty> {
+            let choices: Vec<_> = choices
+                .into_iter()
+                .map(|option| Choice { option })
+                .collect();
+
+            let input = self.input.$choose(game, &choices, range);
+            validate(choices, range, input)
+        }
+
+        pub(crate) fn $choose_cancellable(
+            &mut self,
+            game: &Game,
+            choices: Vec<$ty>,
+            range: Range<usize>,
+        ) -> Option<Vec<$ty>> {
+            let choices: Vec<_> = choices
+                .into_iter()
+                .map(|option| Choice { option })
+                .collect();
+
+            let input = self.input.$choose_cancellable(game, &choices, range)?;
+
+            Some(validate(choices, range, input))
+        }
+    };
 }
 
 impl Controller {
@@ -39,62 +398,78 @@ impl Controller {
         Self { input }
     }
 
-    pub(crate) fn choose_objects(
+    pub(crate) fn choose<T: Target>(
         &mut self,
         game: &Game,
-        choices: Vec<ObjectId>,
-        from: Zone,
-        number_of_choices: Range<usize>,
-    ) -> Vec<ObjectId> {
-        if number_of_choices.is_empty() {
-            panic!("Invalid requested number of choices: range is empty");
-        }
-
-        let input = self
-            .input
-            .choose_objects(game, &choices, from, number_of_choices);
-
-        if !number_of_choices.contains(&input.len()) {
-            panic!("Invalid number of objects chosen");
-        }
-        if input.iter().any(|id| !choices.contains(id)) {
-            panic!("Invalid object chosen");
-        }
-        // Check that all targets are unique
-        if input.len() != input.iter().collect::<std::collections::HashSet<_>>().len() {
-            panic!("Duplicate objects chosen");
-        }
-        input
+        choices: Vec<T>,
+        range: Range<usize>,
+    ) -> Vec<T> {
+        T::choose(self, game, choices, range)
     }
 
-    #[expect(unused_variables)]
-    pub(crate) fn choose_objects_cancellable(
+    pub(crate) fn choose_cancellable<T: Target>(
         &mut self,
         game: &Game,
-        choices: Vec<ObjectId>,
-        from: Zone,
-        number_of_choices: Range<usize>,
-    ) -> Option<Vec<ObjectId>> {
-        todo!()
+        choices: Vec<T>,
+        range: Range<usize>,
+    ) -> Option<Vec<T>> {
+        T::choose_cancellable(self, game, choices, range)
     }
 
-    pub(crate) fn choose_player(&mut self, game: &Game) -> PlayerId {
-        let player = self.input.choose_player(game);
-        player
-    }
+    impl_choose!(AnyTarget, choose_any, choose_any_cancellable);
+    impl_choose!(ExileId, choose_exile, choose_exile_cancellable);
+    impl_choose!(DrawHandId, choose_draw_hand, choose_draw_hand_cancellable);
+    impl_choose!(PlayHandId, choose_play_hand, choose_play_hand_cancellable);
+    impl_choose!(PlayerId, choose_player, choose_player_cancellable);
 
-    #[expect(unused_variables)]
-    pub(crate) fn choose_player_cancellable(&mut self, game: &Game) -> Option<PlayerId> {
-        todo!()
-    }
+    impl_choose!(
+        BattlefieldId,
+        choose_battlefield,
+        choose_battlefield_cancellable
+    );
+
+    impl_choose!(
+        DrawLibraryId,
+        choose_draw_library,
+        choose_draw_library_cancellable
+    );
+
+    impl_choose!(
+        PlayLibraryId,
+        choose_play_library,
+        choose_play_library_cancellable
+    );
+
+    impl_choose!(
+        DrawGraveyardId,
+        choose_draw_graveyard,
+        choose_draw_graveyard_cancellable
+    );
+
+    impl_choose!(
+        PlayGraveyardId,
+        choose_play_graveyard,
+        choose_play_graveyard_cancellable
+    );
+
+    impl_choose!(
+        AbilityStackId,
+        choose_ability_stack,
+        choose_ability_stack_cancellable
+    );
+
+    impl_choose!(
+        SpellStackId,
+        choose_spell_stack,
+        choose_spell_stack_cancellable
+    );
 
     pub(crate) fn choose_color(&mut self, game: &Game) -> ManaColor {
         self.input.choose_color(game)
     }
 
-    #[expect(unused_variables)]
     pub(crate) fn choose_color_cancellable(&mut self, game: &Game) -> Option<ManaColor> {
-        todo!()
+        self.input.choose_color_cancellable(game)
     }
 
     pub(crate) fn choose_number(&mut self, game: &Game, range: Range<usize>) -> usize {
@@ -111,45 +486,24 @@ impl Controller {
         number
     }
 
-    #[expect(unused_variables)]
-    pub(crate) fn choose_number_cancellable(&mut self, game: &Game) -> Option<usize> {
-        todo!()
-    }
-
-    pub(crate) fn choose_stack_objects(
+    pub(crate) fn choose_number_cancellable(
         &mut self,
         game: &Game,
-        targets: Vec<StackId>,
-        amount: usize,
-    ) -> Vec<StackId> {
-        let input = self.input.choose_stack_objects(game, &targets, amount);
-
-        if input.len() != amount {
-            panic!("Invalid number of stack objects chosen");
+        range: Range<usize>,
+    ) -> Option<usize> {
+        if range.is_empty() {
+            panic!("Invalid requested number choice range: range is empty");
         }
 
-        if input.iter().any(|id| !targets.contains(id)) {
-            panic!("Invalid stack object chosen");
-        }
+        let number = self.input.choose_number_cancellable(game, range)?;
 
-        if input.len() != input.iter().collect::<HashSet<_>>().len() {
-            panic!("Duplicate stack objects chosen");
+        if !range.contains(&number) {
+            panic!("Invalid number chosen");
         }
-
-        input
+        Some(number)
     }
 
-    #[expect(unused_variables)]
-    pub(crate) fn choose_stack_objects_cancellable(
-        &mut self,
-        game: &Game,
-        targets: Vec<StackId>,
-        amount: usize,
-    ) -> Option<Vec<StackId>> {
-        todo!()
-    }
-
-    pub(crate) fn take_action(&mut self, active_player: PlayerId) {
-        self.input.take_action(active_player);
+    pub(crate) fn take_action(&mut self) {
+        self.input.take_action();
     }
 }

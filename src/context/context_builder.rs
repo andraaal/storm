@@ -1,6 +1,14 @@
 use crate::{
-    context::{Context, EngineError, config::Config, controller::Input},
-    rules::object::const_characteristics::ConstCharacteristics,
+    context::{
+        Context, EngineError,
+        config::Config,
+        controller::{Controller, Input},
+    },
+    game::objects::Objects,
+    rules::{
+        id::Timestamp,
+        object::{const_characteristics::ConstCharacteristics, game_object::GameObject},
+    },
 };
 
 pub struct ContextBuilder {
@@ -20,15 +28,19 @@ impl ContextBuilder {
         }
     }
 
-    pub fn with_config(mut self, config: Config) -> Self {
+    pub fn with_config(&mut self, config: Config) {
         self.config = Some(config);
-        self
+    }
+
+    pub fn with_play_deck(&mut self, deck: Vec<&'static ConstCharacteristics>) {
+        self.play_deck = deck;
+    }
+
+    pub fn with_draw_deck(&mut self, deck: Vec<&'static ConstCharacteristics>) {
+        self.draw_deck = deck;
     }
 
     pub fn build(self) -> Result<Context, EngineError> {
-        let config = self.config.unwrap_or_default();
-        let ctx = Context::new(self.controller, config);
-
         if self.play_deck.is_empty() || self.draw_deck.is_empty() {
             return Err(EngineError::NoDeck);
         }
@@ -37,7 +49,19 @@ impl ContextBuilder {
             return Err(EngineError::TooSmallDeck);
         }
 
-        // Add the decks to the players
+        let config = self.config.unwrap_or_default();
+        let controller = Controller::new(self.controller);
+        let objects = Objects::new(
+            self.play_deck
+                .into_iter()
+                .map(|r| GameObject::new(r, Timestamp::new()))
+                .collect(),
+            self.draw_deck
+                .into_iter()
+                .map(|r| GameObject::new(r, Timestamp::new()))
+                .collect(),
+        );
+        let ctx = Context::new(controller, config, objects);
 
         Ok(ctx)
     }

@@ -4,12 +4,12 @@ use flagset::FlagSet;
 
 use crate::rules::{
     ability::{
-        activated_ability::ActivatedAbility,
-        static_ability::{DynamicAbilityGroup, IntrinsicAbility, StaticEffect},
-        triggered_ability::TriggeredAbility,
+        // activated_ability::ActivatedAbility,
+        static_ability::{DynamicAbilityGroup, DynamicEffect, IntrinsicAbility},
+        // triggered_ability::TriggeredAbility,
     },
     cost::Cost,
-    id::{ObjectId, Timestamp},
+    id::Timestamp,
     object::{
         const_characteristics::ConstCharacteristics,
         types::{ObjectType, Supertype},
@@ -21,19 +21,18 @@ pub(crate) struct CopyCharacteristics {
     pub(crate) casting_cost: Cost,
     pub(crate) types: Cow<'static, [ObjectType]>,
     pub(crate) super_types: FlagSet<Supertype>,
-    pub(crate) activated_abilities: Cow<'static, [ActivatedAbility]>,
-    pub(crate) static_abilities: Vec<StaticEffect>,
-    pub(crate) triggered_abilities: Cow<'static, [TriggeredAbility]>,
+    // pub(crate) activated_abilities: Cow<'static, [ActivatedAbility]>,
+    pub(crate) static_abilities: Vec<DynamicEffect>,
+    // pub(crate) triggered_abilities: Cow<'static, [TriggeredAbility]>,
 }
 
 impl CopyCharacteristics {
-    pub(crate) fn new(card: &'static ConstCharacteristics, time: Timestamp, id: ObjectId) -> Self {
+    pub(crate) fn new(card: &'static ConstCharacteristics, time: Timestamp) -> Self {
         let statics = card
             .static_abilities
             .iter()
-            .map(|a| StaticEffect {
+            .map(|a| DynamicEffect {
                 timestamp: time,
-                source: id,
                 ability: a,
             })
             .collect();
@@ -43,9 +42,9 @@ impl CopyCharacteristics {
             casting_cost: card.casting_cost.clone(),
             types: Cow::Borrowed(card.types),
             super_types: card.super_types,
-            activated_abilities: Cow::Borrowed(card.activated_abilities),
+            // activated_abilities: Cow::Borrowed(card.activated_abilities),
             static_abilities: statics,
-            triggered_abilities: Cow::Borrowed(card.triggered_abilities),
+            // triggered_abilities: Cow::Borrowed(card.triggered_abilities),
         }
     }
 

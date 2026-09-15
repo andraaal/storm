@@ -1,148 +1,81 @@
-use std::borrow::{Borrow, BorrowMut};
+use std::range::Range;
 
-use crate::{context::Context, rules::ability::effect::private::Sealed};
+use crate::{
+    context::Context,
+    nested_borrow::{NestedBorrow, ShadowBorrow},
+    rules::{
+        ability::behaviour::BehaviourList, id::AnyId, object::game_object::GameObject,
+        target::selector::SelectorList, zone::BattlefieldInfo,
+    },
+};
 
-pub trait StackObjectInfoTrait {
-    fn targets(&self) -> &[crate::rules::target::Target];
+pub trait StackObj {
     fn x(&self) -> Option<u32>;
     fn modes(&self) -> Option<&[usize]>;
     fn modes_mut(&mut self) -> Option<&mut [usize]>;
-}
-
-pub trait Resolveable {
-    unsafe fn execute(&self, ctx: *mut Context);
-}
-
-pub trait StackObj: StackObjectInfoTrait + Resolveable {}
-
-impl<E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> StackObj for StackObject<E, Z, R> {}
-
-impl<E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> Resolveable for StackObject<E, Z, R> {
-    unsafe fn execute(&self, c: *mut Context) {
-        // SAFETY: The caller has to guarantee safety
-        let guard = unsafe { ResolutionGuard::new(self, c) };
-        R::execute(guard);
-    }
-}
-
-pub struct StackObject<E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> {
-    pub(crate) targets: E::Targets,
-    pub(crate) x: E::X,
-    pub(crate) modes: E::Modes,
-    pub(crate) data: E::Data,
-
-    pub(crate) source: ObjectId<Z>,
-    // pub(crate) kind: std::marker::PhantomData<R>,
-}
-
-/// The goal of this struct is be able to pass both a reference to context and a reference to a specific object within the context to another function. To make this safe, the reference to the context is only available after the reference to the inner object is no longer accessible.
-pub struct ResolutionGuard<'a, E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> {
-    object: &'a StackObject<E, Z, R>,
-    ctx: *mut Context,
-    _marker: std::marker::PhantomData<&'a mut Context>,
-}
-
-impl<'a, E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> ResolutionGuard<'a, E, Z, R> {
-    /// Safety requirement: The context pointer must be valid, exclusive (except for the borrow object) and life for at least 'a, usually achieved by borrowing the object from the context.
-    pub(crate) unsafe fn new(object: &'a StackObject<E, Z, R>, ctx: *mut Context) -> Self {
-        Self {
-            object,
-            ctx,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    pub(crate) fn object(&self) -> &StackObject<E, Z, R> {
-        self.object
-    }
-
-    pub(crate) fn finish(self) -> &'a mut Context {
-        // SAFETY: The constructor requires that the context pointer is valid, exclusive and lives for exactly 'a, so this is safe.
-        // Additionally the object reference is no longer accessible after this function, so the context can be safely accessed again.
-        unsafe { &mut *self.ctx }
-    }
-}
-
-pub trait ResolutionBehaviour: Sealed {
-    fn execute<E: Effect<Z, Self>, Z: ZoneIdTrait>(guard: ResolutionGuard<'_, E, Z, Self>)
+    fn execute<B>(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
     where
         Self: Sized;
 }
 
-struct Permanent;
-impl Sealed for Permanent {}
-impl ResolutionBehaviour for Permanent {
-    fn execute<E, Z>(guard: ResolutionGuard<'_, E, Z, Self>)
+pub struct StackObject<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> {
+    pub(crate) targets: <E::TargetSelection as SelectorList>::Selected,
+    pub(crate) x: E::X,
+    pub(crate) modes: E::Modes,
+    pub(crate) data: <E::Behaviours as BehaviourList>::Data,
+    pub(crate) source: R::StackSource,
+
+    pub(crate) kind: std::marker::PhantomData<R>,
+}
+
+pub trait ResolutionBehaviour {
+    type Return: Return;
+    type StackSource;
+    fn execute<E: StackDefinition<Return = Self::Return>>(
+        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) -> ReturnKind
     where
-        E: Effect<Z, Permanent>,
-        Z: ZoneIdTrait,
-    {
-        E::execute(guard);
-        // Move to battlefield afterwards
+        Self: Sized;
+}
+
+pub(crate) struct ToBattlefield;
+impl ResolutionBehaviour for ToBattlefield {
+    type Return = BattlefieldInfo;
+    type StackSource = GameObject;
+    fn execute<E: StackDefinition<Return = Self::Return>>(
+        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) -> ReturnKind {
+        let battlefield_info = E::execute(guard);
+        ReturnKind::ToBattlefield(battlefield_info)
     }
 }
-struct Spell;
-impl Sealed for Spell {}
-impl ResolutionBehaviour for Spell {
-    fn execute<E, Z>(guard: ResolutionGuard<'_, E, Z, Self>)
-    where
-        E: Effect<Z, Spell>,
-        Z: ZoneIdTrait,
-    {
+pub(crate) struct ToGraveyard;
+impl ResolutionBehaviour for ToGraveyard {
+    type Return = ();
+    type StackSource = GameObject;
+    fn execute<E: StackDefinition<Return = Self::Return>>(
+        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) -> ReturnKind {
         E::execute(guard);
         // Move to graveyard afterwards
+        ReturnKind::ToGraveyard
     }
 }
-struct TriggeredAbility;
-impl Sealed for TriggeredAbility {}
-impl ResolutionBehaviour for TriggeredAbility {
-    fn execute<E, Z>(guard: ResolutionGuard<'_, E, Z, TriggeredAbility>)
-    where
-        E: Effect<Z, TriggeredAbility>,
-        Z: ZoneIdTrait,
-    {
+pub(crate) struct Vanish;
+impl ResolutionBehaviour for Vanish {
+    type Return = ();
+    type StackSource = AnyId;
+    fn execute<E: StackDefinition<Return = Self::Return>>(
+        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) -> ReturnKind {
         E::execute(guard);
-    }
-}
-struct ActivatedAbility;
-impl Sealed for ActivatedAbility {}
-impl ResolutionBehaviour for ActivatedAbility {
-    fn execute<E, Z>(guard: ResolutionGuard<'_, E, Z, ActivatedAbility>)
-    where
-        E: Effect<Z, ActivatedAbility>,
-        Z: ZoneIdTrait,
-    {
-        E::execute(guard);
+        ReturnKind::Vanish
     }
 }
 
-pub struct ObjectId<Z: ZoneIdTrait> {
-    pub(crate) id: crate::rules::id::ObjectId,
-    pub(crate) zone: Z,
-}
-
-pub trait ZoneIdTrait: Sealed {}
-
-struct AnyZone;
-impl Sealed for AnyZone {}
-impl ZoneIdTrait for AnyZone {}
-struct Battlefield;
-impl Sealed for Battlefield {}
-impl ZoneIdTrait for Battlefield {}
-struct Stack;
-impl Sealed for Stack {}
-impl ZoneIdTrait for Stack {}
-struct Graveyard<const PLAYER_ID: usize>;
-impl<const PLAYER_ID: usize> Sealed for Graveyard<PLAYER_ID> {}
-impl<const PLAYER_ID: usize> ZoneIdTrait for Graveyard<PLAYER_ID> {}
-
-impl<E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> StackObjectInfoTrait
-    for StackObject<E, Z, R>
+impl<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> StackObj
+    for StackObject<E, R>
 {
-    fn targets(&self) -> &[crate::rules::target::Target] {
-        self.targets.borrow()
-    }
-
     fn x(&self) -> Option<u32> {
         self.x.get()
     }
@@ -154,39 +87,113 @@ impl<E: Effect<Z, R>, Z: ZoneIdTrait, R: ResolutionBehaviour> StackObjectInfoTra
     fn modes_mut(&mut self) -> Option<&mut [usize]> {
         self.modes.get_modes_mut()
     }
+
+    fn execute<B>(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
+    where
+        Self: Sized,
+    {
+        unsafe { guard.call_unsafe(self, R::execute) }
+    }
 }
 
-pub trait Effect<Z: ZoneIdTrait, R: ResolutionBehaviour> {
-    type Targets: BorrowMut<[crate::rules::target::Target]>;
+pub trait StackDefinition: Sized {
+    type TargetSelection: SelectorList;
+    type Behaviours: BehaviourList<Targets = Self::TargetSelection>;
     type X: XVal;
     type Modes: Modes;
-    type Data;
+    type Return: Return;
 
-    // How do we solve this borrowing issue? We could of course solve this with some sort of generic id for stack objects, I find that a bit unappealing, because we already have access to the stack object and then we throw it away to just access it again with the id.
-    fn execute(guard: ResolutionGuard<'_, Self, Z, R>)
+    fn execute<R: ResolutionBehaviour<Return = Self::Return>>(
+        guard: NestedBorrow<'_, '_, StackObject<Self, R>, Context>,
+    ) -> Self::Return
     where
         Self: Sized;
+
+    fn choose_data(ctx: &mut Context) -> <Self::Behaviours as BehaviourList>::Data;
 }
 
-mod private {
-    pub(super) trait Sealed {}
+trait Return {}
+impl Return for () {}
+impl Return for BattlefieldInfo {}
+
+pub(crate) enum ReturnKind {
+    Vanish,
+    ToGraveyard,
+    ToBattlefield(BattlefieldInfo),
 }
+
+// ================
+
+pub(crate) trait SpellResolutionBehaviour: ResolutionBehaviour {}
+
+impl SpellResolutionBehaviour for ToBattlefield {}
+impl SpellResolutionBehaviour for ToGraveyard {}
+
+pub(crate) type SpellObject<E: StackDefinition<Return = R::Return>, R: SpellResolutionBehaviour> =
+    StackObject<E, R>;
+
+pub(crate) type AbilityObject<E: StackDefinition<Return = ()>> = StackObject<E, Vanish>;
+
+pub(crate) trait Spell: StackObj {
+    fn get_source(&self) -> &GameObject;
+    fn get_source_mut(&mut self) -> &mut GameObject;
+    fn take_source(self: Box<Self>) -> GameObject;
+}
+pub(crate) trait Ability: StackObj {
+    fn get_source(&self) -> AnyId;
+}
+
+impl<E: StackDefinition, R: SpellResolutionBehaviour<Return = E::Return, StackSource = GameObject>>
+    Spell for SpellObject<E, R>
+{
+    fn get_source(&self) -> &GameObject {
+        &self.source
+    }
+    fn get_source_mut(&mut self) -> &mut GameObject {
+        &mut self.source
+    }
+    fn take_source(self: Box<Self>) -> GameObject {
+        self.source
+    }
+}
+
+impl<E: StackDefinition<Return = ()>> Ability for AbilityObject<E> {
+    fn get_source(&self) -> AnyId {
+        self.source
+    }
+}
+
+// ================
 
 pub(crate) struct WithX(u32);
 pub(crate) struct WithoutX;
 
-trait XVal: private::Sealed {
+pub(crate) trait XVal {
     fn get(&self) -> Option<u32>;
     fn get_mut(&mut self) -> Option<&mut u32>;
+
+    fn choose(ctx: &mut Context) -> Self
+    where
+        Self: Sized;
 }
-impl private::Sealed for WithX {}
-impl private::Sealed for WithoutX {}
 impl XVal for WithX {
     fn get(&self) -> Option<u32> {
         Some(self.0)
     }
     fn get_mut(&mut self) -> Option<&mut u32> {
         Some(&mut self.0)
+    }
+    fn choose(ctx: &mut Context) -> Self
+    where
+        Self: Sized,
+    {
+        WithX(ctx.controller.choose_number(
+            &ctx.game,
+            Range {
+                start: 0,
+                end: usize::MAX,
+            },
+        ) as u32)
     }
 }
 impl XVal for WithoutX {
@@ -196,6 +203,12 @@ impl XVal for WithoutX {
     fn get_mut(&mut self) -> Option<&mut u32> {
         None
     }
+    fn choose(_: &mut Context) -> Self
+    where
+        Self: Sized,
+    {
+        Self {}
+    }
 }
 
 pub(crate) struct WithoutModes;
@@ -203,9 +216,13 @@ pub(crate) struct WithModes<const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usiz
     modes: [usize; CHOICE_AMOUNT],
 }
 
-pub(crate) trait Modes: private::Sealed {
+pub(crate) trait Modes {
     fn get_modes(&self) -> Option<&[usize]>;
     fn get_modes_mut(&mut self) -> Option<&mut [usize]>;
+
+    fn choose(ctx: &mut Context) -> Self
+    where
+        Self: Sized;
 }
 impl<'a, const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usize>
     WithModes<CHOICE_RANGE, CHOICE_AMOUNT>
@@ -220,11 +237,6 @@ impl<'a, const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usize>
     }
 }
 
-impl private::Sealed for WithoutModes {}
-impl<'a, const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usize> private::Sealed
-    for WithModes<CHOICE_RANGE, CHOICE_AMOUNT>
-{
-}
 impl Modes for WithoutModes {
     fn get_modes(&self) -> Option<&[usize]> {
         None
@@ -233,7 +245,12 @@ impl Modes for WithoutModes {
     fn get_modes_mut(&mut self) -> Option<&mut [usize]> {
         None
     }
+
+    fn choose(_: &mut Context) -> Self {
+        Self {}
+    }
 }
+
 impl<'a, const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usize> Modes
     for WithModes<CHOICE_RANGE, CHOICE_AMOUNT>
 {
@@ -243,5 +260,9 @@ impl<'a, const CHOICE_RANGE: usize, const CHOICE_AMOUNT: usize> Modes
 
     fn get_modes_mut(&mut self) -> Option<&mut [usize]> {
         Some(&mut self.modes[..])
+    }
+
+    fn choose(_ctx: &mut Context) -> Self {
+        todo!()
     }
 }

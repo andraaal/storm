@@ -9,7 +9,7 @@ use crate::{
 impl Context {
     pub(crate) fn redo_layering(&mut self) {
         // First reset the layering info on all objects
-        for obj in self.game.objects_mut() {
+        for obj in self.game.objects.values_mut() {
             obj.reset_characteristics();
         }
 
@@ -17,7 +17,7 @@ impl Context {
         let mut saved_effects = Vec::new();
 
         for layer in LAYER_ORDER {
-            for obj in self.game.objects_mut() {
+            for (id, obj) in self.game.objects.iter_mut() {
                 saved_effects.extend(
                     obj.characteristics
                         .static_abilities
@@ -26,7 +26,8 @@ impl Context {
                             s.ability.layers.contains(layer)
                                 && s.ability.layers.bits() & ((layer as u16) - 1) == 0
                         })
-                        .cloned(),
+                        .cloned()
+                        .map(|v| (id, v)),
                 );
 
                 // Snapshot copyable effects (Control Changing Layer is directly after the copyable effects)
@@ -35,7 +36,7 @@ impl Context {
                 }
             }
 
-            for static_effect in &saved_effects {
+            for (_, static_effect) in &saved_effects {
                 let DynamicAbilityGroup::DynamicContinuous(effects) =
                     &static_effect.ability.ability_group
                 else {
@@ -45,7 +46,7 @@ impl Context {
                 for effect in effects.iter() {
                     if effect.layer == layer {
                         // apply effect
-                        (effect.effect)(self, static_effect.source);
+                        effect.effect.apply(self);
                     }
                 }
             }

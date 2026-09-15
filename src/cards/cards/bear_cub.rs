@@ -29,7 +29,7 @@ pub(crate) const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
         subtypes: Cow::Borrowed(&[CreatureType::Bear]),
     }],
     super_types: FlagSet::empty(),
-    activated_abilities: &[],
+    // activated_abilities: &[],
     static_abilities: &[],
-    triggered_abilities: &[],
+    // triggered_abilities: &[],
 };

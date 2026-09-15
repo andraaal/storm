@@ -1,5 +1,4 @@
 use crate::context::Context;
-use crate::game::object_iter::GameObjectIterExt;
 use crate::rules::game_action::GameAction;
 use crate::rules::player::PlayerId;
 use crate::rules::turn::{Step, TURN_STEPS};
@@ -11,7 +10,9 @@ impl Context {
             PlayerId::DrawPlayer => PlayerId::PlayPlayer,
         };
         if self.game.last_non_passed_priority == self.game.priority {
-            if !self.game.stack.is_empty() {
+            if !(self.game.objects.spell_stack.is_empty()
+                && self.game.objects.ability_stack.is_empty())
+            {
                 // Resolve top of stack
             } else {
                 self.advance_step();
@@ -46,17 +47,15 @@ impl Context {
             }
             Step::Untap => {
                 let untap_action = GameAction::Untap {
-                    objects: self
-                        .game
-                        .objects()
-                        .filter_battlefield(|b| b.tapped && b.controller == active_player)
-                        .id()
-                        .collect::<Vec<_>>(),
+                    objects: self.game.objects.battlefield.keys().collect::<Vec<_>>(),
                 };
                 self.execute(vec![untap_action]);
             }
             Step::Cleanup => {
-                let hand_size = self.game.players.get(active_player).hand.len();
+                let hand_size = match active_player {
+                    PlayerId::DrawPlayer => self.game.objects.draw_hand.len(),
+                    PlayerId::PlayPlayer => self.game.objects.play_hand.len(),
+                };
                 if hand_size > 7 {
                     let action = GameAction::Discard {
                         player: active_player,

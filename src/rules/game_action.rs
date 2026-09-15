@@ -1,30 +1,45 @@
 use std::range::Range;
 
-use crate::rules::{id::ObjectId, player::PlayerId, target::Target, zone::Zone};
+use crate::rules::{
+    id::{AnyId, BattlefieldId},
+    player::PlayerId,
+    target::damage::DamageableTarget,
+    zone::{BattlefieldInfo, ExileInfo},
+};
 
 /// A GameAction represents an event that replacement and triggered effects can observe.
 /// It may immediately change Game state or register additional GameActions.
 /// A GameAction is the only way to change game objects (save for their characteristics which can only be modified by layering)
 pub(crate) enum GameAction {
     DealDamage {
-        source: ObjectId,
-        targets: Vec<(u32, Target)>,
+        source: AnyId,
+        targets: Vec<(u32, DamageableTarget)>,
     },
     NoOp,
-    MoveToZone {
-        objects: Vec<ObjectId>,
-        to: Zone,
-        from: Zone,
+    MoveToBattlefield {
+        objects: Vec<(AnyId, BattlefieldInfo)>,
+    },
+    MoveToExile {
+        objects: Vec<(AnyId, ExileInfo)>,
+    },
+    MoveToLibrary {
+        objects: Vec<AnyId>,
+    },
+    MoveToHand {
+        objects: Vec<AnyId>,
+    },
+    MoveToGraveyard {
+        objects: Vec<AnyId>,
     },
     DrawCards {
         player: PlayerId,
         amount: u32,
     },
     Tap {
-        objects: Vec<ObjectId>,
+        objects: Vec<BattlefieldId>,
     },
     Untap {
-        objects: Vec<ObjectId>,
+        objects: Vec<BattlefieldId>,
     },
     Discard {
         player: PlayerId,

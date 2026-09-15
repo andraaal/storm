@@ -1,13 +1,9 @@
+use flagset::flags;
 use std::borrow::Cow;
 
-use flagset::flags;
+use crate::{cards::Spells, context::Context, rules::id::SpellStackId};
 
-use crate::{
-    context::Context,
-    rules::{id::StackId, target::Target},
-};
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) enum ObjectType {
     Creature {
         power: i64,
@@ -16,13 +12,11 @@ pub(crate) enum ObjectType {
     },
     Sorcery {
         subtypes: Cow<'static, [SpellType]>,
-        effects: Cow<'static, [fn(&mut Context, StackId)]>,
-        target_selectors: Cow<'static, [fn(&Context, Target) -> bool]>,
+        effect: Spells,
     },
     Instant {
         subtypes: Cow<'static, [SpellType]>,
-        effects: Cow<'static, [fn(&mut Context, StackId)]>,
-        target_selectors: Cow<'static, [fn(&Context, Target) -> bool]>,
+        effects: Spells,
     },
     Enchantment {
         subtypes: Cow<'static, [EnchantmentType]>,
