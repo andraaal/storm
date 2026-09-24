@@ -48,4 +48,10 @@ pub(crate) enum GameAction {
     RemoveDamage {
         player: PlayerId,
     },
+    PlayCard {
+        id: AnyId,
+    },
+    CastSpell {
+        id: AnyId,
+    },
 }

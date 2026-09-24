@@ -1,4 +1,6 @@
-# Storm design guide
+# Storm design guide [AI generated]
+
+Human Note: Actually decent docs, but a little bit outdated
 
 Storm is a Rust Magic: The Gathering rules-engine prototype.  This document
 describes the **current, in-progress design**: the zone-owned object model and
@@ -208,44 +210,3 @@ contains the intended turn-based actions: draw at draw step, untap at untap,
 discard down to seven and clear damage in cleanup.  Combat is explicitly not
 implemented.  Step advancement and `Context::start` are incomplete, so this
 should be considered scaffolding rather than a runnable rules loop.
-
-## Current implementation limits
-
-Future work should account for these active gaps before relying on the engine:
-
-* `Context::start`, the test-game helper, casting, stack resolution, state-based
-  actions, triggered effects, replacement effects, payment, shuffling, and
-  combat are unfinished or disconnected.
-* The action dispatcher does not currently run layering or state-based checks
-  after batches.  It also does not provide the promised replacement/trigger
-  observation.
-* Draw currently selects from hand maps rather than library maps; this needs
-  correction when implementing the start/turn loop.
-* The queued-step code extends `TURN_STEPS` then pops it, so its current order
-  is reverse declaration order unless revised.
-* Several card/stack-definition modules are experimental and the crate is not
-  currently a clean build.  Preserve the architectural interfaces above, but
-  verify compiler status before building new functionality on them.
-* The source currently declares all top-level modules `pub(crate)`.  Although
-  several types use `pub`, the crate does not yet expose a usable external
-  library API; the visible builder/context/input surface is an internal API.
-
-## Practical extension rules
-
-When adding rules support, prefer this sequence:
-
-1. Extend the domain vocabulary (`GameAction`, IDs, zone info, characteristics,
-   or ability data) before adding bespoke mutations.
-2. Put rule orchestration in the appropriate `Context` execution module and
-   keep `Game` as data/state registration.
-3. Move cards only through `Objects` movement helpers invoked by actions, and
-   use newly returned zone IDs after a move.
-4. Express lasting characteristic changes as layer-aware abilities/effects;
-   use timestamps and conditions for lifecycle work.
-5. Represent player decisions with selectors and `Controller` validation.
-6. For new stack behavior, implement a typed `StackDefinition` plus reusable
-   selectors/behaviors where possible, then connect it through the unfinished
-   casting/resolution pipeline rather than creating another stack model.
-
-This keeps the refactor converging on one source of truth for zones, actions,
-layers, and stack resolution.

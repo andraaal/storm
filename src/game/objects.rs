@@ -22,6 +22,7 @@ pub(crate) struct Objects {
     pub(crate) draw_library: MyMap<DrawLibraryId, GameObject>,
     pub(crate) play_graveyard: MyMap<PlayGraveyardId, GameObject>,
     pub(crate) draw_graveyard: MyMap<DrawGraveyardId, GameObject>,
+    pub(crate) resolving_spell: Option<AnyId>,
 }
 
 impl Objects {
@@ -48,6 +49,7 @@ impl Objects {
             draw_library: draw,
             play_graveyard: MyMap::new(),
             draw_graveyard: MyMap::new(),
+            resolving_spell: None,
         }
     }
 
@@ -55,13 +57,13 @@ impl Objects {
         match id {
             AnyId::Battlefield(id) => self.battlefield.get(id).map(|f| &f.1),
             AnyId::Stack(id) => self.spell_stack.get(id).map(|f| f.1.get_source()),
-            AnyId::PlayGraveyard(id) => self.play_graveyard.get(id).map(|f| f),
-            AnyId::DrawGraveyard(id) => self.draw_graveyard.get(id).map(|f| f),
             AnyId::Exile(id) => self.exile.get(id).map(|f| &f.1),
-            AnyId::PlayHand(id) => self.play_hand.get(id).map(|f| f),
-            AnyId::DrawHand(id) => self.draw_hand.get(id).map(|f| f),
-            AnyId::PlayLibrary(id) => self.play_library.get(id).map(|f| f),
-            AnyId::DrawLibrary(id) => self.draw_library.get(id).map(|f| f),
+            AnyId::PlayGraveyard(id) => self.play_graveyard.get(id),
+            AnyId::DrawGraveyard(id) => self.draw_graveyard.get(id),
+            AnyId::PlayHand(id) => self.play_hand.get(id),
+            AnyId::DrawHand(id) => self.draw_hand.get(id),
+            AnyId::PlayLibrary(id) => self.play_library.get(id),
+            AnyId::DrawLibrary(id) => self.draw_library.get(id),
         }
     }
 
@@ -69,9 +71,9 @@ impl Objects {
         match id {
             AnyId::Battlefield(id) => self.battlefield.get_mut(id).map(|f| &mut f.1),
             AnyId::Stack(id) => self.spell_stack.get_mut(id).map(|f| f.1.get_source_mut()),
+            AnyId::Exile(id) => self.exile.get_mut(id).map(|f| &mut f.1),
             AnyId::PlayGraveyard(id) => self.play_graveyard.get_mut(id),
             AnyId::DrawGraveyard(id) => self.draw_graveyard.get_mut(id),
-            AnyId::Exile(id) => self.exile.get_mut(id).map(|f| &mut f.1),
             AnyId::PlayHand(id) => self.play_hand.get_mut(id),
             AnyId::DrawHand(id) => self.draw_hand.get_mut(id),
             AnyId::PlayLibrary(id) => self.play_library.get_mut(id),
@@ -232,13 +234,13 @@ impl<K: Key, V> MyMap<K, V> {
         }
     }
 
-    fn insert(&mut self, value: V) -> K {
+    pub(crate) default fn insert(&mut self, value: V) -> K {
         let key = self.map.insert(value);
         self.order.push(key);
         key
     }
 
-    fn remove(&mut self, key: K) -> Option<V> {
+    default fn remove(&mut self, key: K) -> Option<V> {
         if let Some(pos) = self.order.iter().position(|&k| k == key) {
             self.order.remove(pos);
         }
@@ -283,7 +285,7 @@ impl<K: Key, V> MyMap<K, V> {
 }
 
 impl AnyId {
-    fn remove(self, objects: &mut Objects) -> GameObject {
+    pub(crate) fn remove(self, objects: &mut Objects) -> GameObject {
         match self {
             AnyId::Battlefield(id) => {
                 objects

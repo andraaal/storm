@@ -3,10 +3,13 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::{
-    rules::cost::{Cost, ManaCost},
-    rules::object::{
-        const_characteristics::ConstCharacteristics,
-        types::{CreatureType, ObjectType},
+    cards::PermanentEffects,
+    rules::{
+        cost::{Cost, ManaCost},
+        object::{
+            const_characteristics::ConstCharacteristics,
+            types::{CreatureType, ObjectType},
+        },
     },
 };
 
@@ -27,6 +30,7 @@ pub(crate) const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
         power: 2,
         toughness: 2,
         subtypes: Cow::Borrowed(&[CreatureType::Bear]),
+        effect: PermanentEffects::Trivial,
     }],
     super_types: FlagSet::empty(),
     // activated_abilities: &[],

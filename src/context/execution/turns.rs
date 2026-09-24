@@ -1,9 +1,49 @@
 use crate::context::Context;
 use crate::rules::game_action::GameAction;
 use crate::rules::player::PlayerId;
+use crate::rules::player_action::PlayerAction;
 use crate::rules::turn::{Step, TURN_STEPS};
 
 impl Context {
+    pub(crate) fn game_loop(&mut self) -> ! {
+        loop {
+            let action = self
+                .controller
+                .choose_action(&self.game, self.possible_actions());
+
+            match action {
+                PlayerAction::PassPriority => self.pass_player_priority(),
+                PlayerAction::PlayCard(id) => self.play_card(id),
+            }
+        }
+    }
+
+    fn possible_actions(&self) -> Vec<PlayerAction> {
+        let ids = match self.game.priority {
+            PlayerId::DrawPlayer => self
+                .game
+                .objects
+                .draw_hand
+                .keys()
+                .map(|k| k.into())
+                .collect::<Vec<_>>(),
+            PlayerId::PlayPlayer => self
+                .game
+                .objects
+                .play_hand
+                .keys()
+                .map(|k| k.into())
+                .collect::<Vec<_>>(),
+        };
+
+        let mut actions = Vec::with_capacity(ids.len() + 1);
+        for id in ids {
+            actions.push(PlayerAction::PlayCard(id));
+        }
+        actions.push(PlayerAction::PassPriority);
+        actions
+    }
+
     pub(crate) fn pass_player_priority(&mut self) {
         self.game.priority = match self.game.priority {
             PlayerId::PlayPlayer => PlayerId::DrawPlayer,

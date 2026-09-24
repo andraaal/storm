@@ -5,7 +5,7 @@ use crate::cards::StaticAbilities;
 use crate::context::Context;
 use crate::rules::condition::Condition;
 use crate::rules::game_action::GameAction;
-use crate::rules::id::{AnyId, Timestamp};
+use crate::rules::id::Timestamp;
 use crate::rules::layer::{Layer, Layers};
 use crate::rules::target::AnyTarget;
 use crate::rules::zone::Zones;

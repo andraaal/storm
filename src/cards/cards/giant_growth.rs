@@ -21,7 +21,7 @@ pub(crate) const GIANT_GROWTH: ConstCharacteristics = ConstCharacteristics {
     },
     types: &[ObjectType::Instant {
         subtypes: Cow::Borrowed(&[]),
-        effects: Spells::Plus3_3,
+        effect: Spells::Plus3_3,
     }],
     super_types: FlagSet::empty(),
     // activated_abilities: &[],

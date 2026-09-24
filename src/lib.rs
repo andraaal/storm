@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![feature(checked_type_aliases)]
+#![feature(min_specialization)]
 
 pub(crate) mod cards;
 pub(crate) mod context;

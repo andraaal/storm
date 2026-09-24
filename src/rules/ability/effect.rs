@@ -13,9 +13,7 @@ pub trait StackObj {
     fn x(&self) -> Option<u32>;
     fn modes(&self) -> Option<&[usize]>;
     fn modes_mut(&mut self) -> Option<&mut [usize]>;
-    fn execute<B>(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
-    where
-        Self: Sized;
+    fn execute(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind;
 }
 
 pub struct StackObject<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> {
@@ -88,7 +86,7 @@ impl<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> StackObj
         self.modes.get_modes_mut()
     }
 
-    fn execute<B>(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
+    fn execute(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
     where
         Self: Sized,
     {
@@ -112,7 +110,7 @@ pub trait StackDefinition: Sized {
     fn choose_data(ctx: &mut Context) -> <Self::Behaviours as BehaviourList>::Data;
 }
 
-trait Return {}
+pub(crate) trait Return {}
 impl Return for () {}
 impl Return for BattlefieldInfo {}
 
@@ -121,8 +119,6 @@ pub(crate) enum ReturnKind {
     ToGraveyard,
     ToBattlefield(BattlefieldInfo),
 }
-
-// ================
 
 pub(crate) trait SpellResolutionBehaviour: ResolutionBehaviour {}
 

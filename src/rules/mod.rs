@@ -25,6 +25,7 @@ pub(crate) mod game_action;
 pub(crate) mod id;
 pub(crate) mod layer;
 pub(crate) mod player;
+pub(crate) mod player_action;
 pub(crate) mod target;
 pub(crate) mod turn;
 pub(crate) mod zone;

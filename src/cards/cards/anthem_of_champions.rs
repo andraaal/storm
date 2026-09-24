@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::{
-    cards::StaticAbilities,
+    cards::{PermanentEffects, StaticAbilities},
     rules::{
         ability::static_ability::{DynamicAbility, DynamicAbilityGroup, DynamicContinuousAbility},
         cost::{Cost, ManaCost},
@@ -28,6 +28,7 @@ pub(crate) const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
     },
     types: &[ObjectType::Enchantment {
         subtypes: Cow::Borrowed(&[]),
+        effect: PermanentEffects::Trivial,
     }],
     super_types: FlagSet::empty(),
     // activated_abilities: &[],

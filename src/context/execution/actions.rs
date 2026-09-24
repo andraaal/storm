@@ -56,6 +56,12 @@ impl Context {
             GameAction::RemoveDamage { player } => {
                 self.remove_damage(player);
             }
+            GameAction::CastSpell { id } => {
+                self.cast_spell(id);
+            }
+            GameAction::PlayCard { id } => {
+                self.play_card(id);
+            }
         }
     }
 

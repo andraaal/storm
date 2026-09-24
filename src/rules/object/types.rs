@@ -1,7 +1,7 @@
 use flagset::flags;
 use std::borrow::Cow;
 
-use crate::{cards::Spells, context::Context, rules::id::SpellStackId};
+use crate::cards::{PermanentEffects, Spells};
 
 #[derive(Clone)]
 pub(crate) enum ObjectType {
@@ -9,6 +9,7 @@ pub(crate) enum ObjectType {
         power: i64,
         toughness: i64,
         subtypes: Cow<'static, [CreatureType]>,
+        effect: PermanentEffects,
     },
     Sorcery {
         subtypes: Cow<'static, [SpellType]>,
@@ -16,19 +17,23 @@ pub(crate) enum ObjectType {
     },
     Instant {
         subtypes: Cow<'static, [SpellType]>,
-        effects: Spells,
+        effect: Spells,
     },
     Enchantment {
         subtypes: Cow<'static, [EnchantmentType]>,
+        effect: PermanentEffects,
     },
     Artifact {
         subtypes: Cow<'static, [ArtifactType]>,
+        effect: PermanentEffects,
     },
     Planeswalker {
         subtypes: Cow<'static, [PlaneswalkerType]>,
+        effect: PermanentEffects,
     },
     Land {
         subtypes: Cow<'static, [LandType]>,
+        effect: PermanentEffects,
     },
 }
 

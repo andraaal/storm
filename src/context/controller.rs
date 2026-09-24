@@ -9,22 +9,25 @@ use crate::{
             PlayGraveyardId, PlayHandId, PlayLibraryId, SpellStackId,
         },
         player::PlayerId,
+        player_action::PlayerAction,
         target::{AnyTarget, Target},
     },
 };
 
-#[derive(PartialEq)]
-pub struct Choice<T: PartialEq> {
+#[derive(PartialEq, Clone)]
+pub struct Choice<T: PartialEq + Clone> {
     option: T,
 }
 
-impl<T: PartialEq> Choice<T> {
+impl<T: PartialEq + Clone> Choice<T> {
     pub fn id(&self) -> &T {
         &self.option
     }
 }
 
-fn cast<T: PartialEq + Into<U> + Copy, U: PartialEq>(choices: &[Choice<T>]) -> Vec<Choice<U>> {
+fn cast<T: PartialEq + Into<U> + Copy, U: PartialEq + Clone>(
+    choices: &[Choice<T>],
+) -> Vec<Choice<U>> {
     choices
         .iter()
         .map(|c| Choice {
@@ -33,7 +36,7 @@ fn cast<T: PartialEq + Into<U> + Copy, U: PartialEq>(choices: &[Choice<T>]) -> V
         .collect()
 }
 
-fn try_cast<T: PartialEq + TryInto<U> + Copy, U: PartialEq>(
+fn try_cast<T: PartialEq + TryInto<U> + Copy, U: PartialEq + Clone>(
     choices: Vec<Choice<T>>,
 ) -> Vec<Choice<U>>
 where
@@ -321,14 +324,18 @@ pub trait Input {
     fn choose_color_cancellable(&mut self, game: &Game) -> Option<ManaColor>;
     fn choose_number_cancellable(&mut self, game: &Game, range: Range<usize>) -> Option<usize>;
     fn choose_number(&mut self, game: &Game, range: Range<usize>) -> usize;
-    fn take_action(&mut self);
+    fn take_action(
+        &mut self,
+        game: &Game,
+        choices: &[Choice<PlayerAction>],
+    ) -> Choice<PlayerAction>;
 }
 
 pub struct Controller {
     pub(crate) input: Box<dyn Input>,
 }
 
-fn validate<T: PartialEq>(
+fn validate<T: PartialEq + Clone>(
     choices: Vec<Choice<T>>,
     range: Range<usize>,
     input: Vec<Choice<T>>,
@@ -503,7 +510,17 @@ impl Controller {
         Some(number)
     }
 
-    pub(crate) fn take_action(&mut self) {
-        self.input.take_action();
+    pub(crate) fn choose_action(
+        &mut self,
+        game: &Game,
+        choices: Vec<PlayerAction>,
+    ) -> PlayerAction {
+        let choices = choices
+            .into_iter()
+            .map(|i| Choice { option: i })
+            .collect::<Vec<_>>();
+        let input = self.input.take_action(game, &choices);
+
+        validate(choices, Range { start: 1, end: 2 }, vec![input])[0].clone()
     }
 }

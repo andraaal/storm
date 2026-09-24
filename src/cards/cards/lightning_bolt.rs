@@ -25,7 +25,7 @@ pub(crate) const LIGHTNING_BOLT: ConstCharacteristics = ConstCharacteristics {
     },
     types: &[ObjectType::Instant {
         subtypes: Cow::Borrowed(&[]),
-        effects: Spells::Damage3,
+        effect: Spells::Damage3,
     }],
     super_types: FlagSet::empty(),
     // activated_abilities: &[],

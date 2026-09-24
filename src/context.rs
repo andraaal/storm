@@ -13,7 +13,7 @@ pub(crate) mod execution {
     pub(crate) mod casting;
     pub(crate) mod layering;
     pub(crate) mod state_based;
-    pub(crate) mod turn;
+    pub(crate) mod turns;
 }
 
 #[derive(Error, Debug)]
@@ -42,15 +42,5 @@ impl Context {
     /// Start the game: performs initial draws and basic checks
     pub fn start(&mut self) -> Result<(), EngineError> {
         todo!()
-    }
-
-    /// Pass priority to the other player
-    pub fn pass_priority(&mut self) {
-        use crate::rules::player::PlayerId;
-        self.game.last_non_passed_priority = self.game.priority;
-        self.game.priority = match self.game.priority {
-            PlayerId::PlayPlayer => PlayerId::DrawPlayer,
-            PlayerId::DrawPlayer => PlayerId::PlayPlayer,
-        };
     }
 }
