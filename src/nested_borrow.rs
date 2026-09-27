@@ -22,7 +22,7 @@ impl<'a, T> ShadowBorrow<'a, T> {
         });
     }
 
-    /// This version of call doesn't enforce that you neither pass a reference to T to nor return one; You have to be carful yourself. Otherwise it is immediately UB, regardless of if you use the reference or not.
+    /// This version of call doesn't enforce that you neither pass a reference to T to nor return one; You have to be careful yourself. Otherwise it is immediately UB (I think), regardless of if you use the reference or not.
     pub(crate) unsafe fn call_unsafe<B, F: FnOnce(NestedBorrow<'_, '_, B, T>) -> R, R>(
         &self,
         data: &mut B,
@@ -54,6 +54,17 @@ impl<'a, 'b, B, T> NestedBorrow<'a, 'b, B, T> {
             val: self.val,
             _marker: self._marker,
         });
+    }
+
+    pub(crate) unsafe fn call_unsafe<F: FnOnce(NestedBorrow<'a, 'b, B, T>) -> R, R>(
+        &mut self,
+        func: F,
+    ) -> R {
+        func(NestedBorrow {
+            borrow: unsafe { &mut *(self.borrow as *mut B) },
+            val: self.val,
+            _marker: self._marker,
+        })
     }
 
     pub(crate) fn finish(self) -> &'a mut T {

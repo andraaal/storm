@@ -4,8 +4,8 @@ use crate::{
     context::Context,
     nested_borrow::{NestedBorrow, ShadowBorrow},
     rules::{
-        ability::behaviour::BehaviourList, id::AnyId, object::game_object::GameObject,
-        target::selector::SelectorList, zone::BattlefieldInfo,
+        ability::behaviour::BehaviourList, game_action::GameAction, id::AnyId,
+        object::game_object::GameObject, target::selector::SelectorList, zone::BattlefieldInfo,
     },
 };
 
@@ -13,7 +13,7 @@ pub trait StackObj {
     fn x(&self) -> Option<u32>;
     fn modes(&self) -> Option<&[usize]>;
     fn modes_mut(&mut self) -> Option<&mut [usize]>;
-    fn execute(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind;
+    fn execute(self: Box<Self>, guard: ShadowBorrow<'_, Context>);
 }
 
 pub struct StackObject<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> {
@@ -31,8 +31,7 @@ pub trait ResolutionBehaviour {
     type StackSource;
     fn execute<E: StackDefinition<Return = Self::Return>>(
         guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
-    ) -> ReturnKind
-    where
+    ) where
         Self: Sized;
 }
 
@@ -41,10 +40,14 @@ impl ResolutionBehaviour for ToBattlefield {
     type Return = BattlefieldInfo;
     type StackSource = GameObject;
     fn execute<E: StackDefinition<Return = Self::Return>>(
-        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
-    ) -> ReturnKind {
-        let battlefield_info = E::execute(guard);
-        ReturnKind::ToBattlefield(battlefield_info)
+        mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) {
+        let info = unsafe { guard.call_unsafe(E::execute) };
+        let ctx = guard.finish();
+        let this = ctx.game.objects.resolving_spell.unwrap();
+        ctx.execute(vec![GameAction::MoveToBattlefield {
+            objects: vec![(this, info)],
+        }]);
     }
 }
 pub(crate) struct ToGraveyard;
@@ -52,11 +55,14 @@ impl ResolutionBehaviour for ToGraveyard {
     type Return = ();
     type StackSource = GameObject;
     fn execute<E: StackDefinition<Return = Self::Return>>(
-        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
-    ) -> ReturnKind {
-        E::execute(guard);
-        // Move to graveyard afterwards
-        ReturnKind::ToGraveyard
+        mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) {
+        guard.call(E::execute);
+        let ctx = guard.finish();
+        let this = ctx.game.objects.resolving_spell.unwrap();
+        ctx.execute(vec![GameAction::MoveToGraveyard {
+            objects: vec![this],
+        }]);
     }
 }
 pub(crate) struct Vanish;
@@ -64,10 +70,12 @@ impl ResolutionBehaviour for Vanish {
     type Return = ();
     type StackSource = AnyId;
     fn execute<E: StackDefinition<Return = Self::Return>>(
-        guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
-    ) -> ReturnKind {
-        E::execute(guard);
-        ReturnKind::Vanish
+        mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
+    ) {
+        guard.call(E::execute);
+        let ctx = guard.finish();
+        let this = ctx.game.objects.resolving_spell.unwrap();
+        this.remove(&mut ctx.game.objects);
     }
 }
 
@@ -86,11 +94,11 @@ impl<E: StackDefinition, R: ResolutionBehaviour<Return = E::Return>> StackObj
         self.modes.get_modes_mut()
     }
 
-    fn execute(&mut self, guard: ShadowBorrow<'_, Context>) -> ReturnKind
+    fn execute(mut self: Box<Self>, guard: ShadowBorrow<'_, Context>)
     where
         Self: Sized,
     {
-        unsafe { guard.call_unsafe(self, R::execute) }
+        guard.call(&mut *self, R::execute);
     }
 }
 
@@ -113,12 +121,6 @@ pub trait StackDefinition: Sized {
 pub(crate) trait Return {}
 impl Return for () {}
 impl Return for BattlefieldInfo {}
-
-pub(crate) enum ReturnKind {
-    Vanish,
-    ToGraveyard,
-    ToBattlefield(BattlefieldInfo),
-}
 
 pub(crate) trait SpellResolutionBehaviour: ResolutionBehaviour {}
 

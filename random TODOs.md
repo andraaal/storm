@@ -14,4 +14,6 @@
 18. Remove useless Choice type; Use lifetimes to prevent reuse of Choices instead
 19. Verifier that tracks valid/maybe-invalid ids at compile time
 20. Make lands not use stack objects internatlly
-21. Refact
+21. Milling out should be a state-based action
+22. Make losing/winning game actions
+23. Make all state-based game-actions simultaneous

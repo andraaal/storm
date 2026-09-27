@@ -1,7 +1,7 @@
 use crate::{
     context::Context,
     nested_borrow::ShadowBorrow,
-    rules::{ability::effect::ReturnKind, id::AnyId, object::types::ObjectType, zone::StackInfo},
+    rules::{id::AnyId, object::types::ObjectType, zone::StackInfo},
 };
 
 impl Context {
@@ -43,16 +43,9 @@ impl Context {
             _ => None,
         }) {
             let source = id.remove(&mut self.game.objects);
-            let mut boxed = effect.create(self, source);
-            let (sb, ctx) = ShadowBorrow::<'_, Context>::new(self);
-            let r_kind = boxed.execute(sb);
-            let info = match r_kind {
-                ReturnKind::ToBattlefield(info) => info,
-                _ => panic!("A land can't have this kind of effect"),
-            };
-            let mut obj = boxed.take_source();
-            obj.timestamp = ctx.game.generate_timestamp();
-            self.game.objects.battlefield.insert((info, obj));
+            let boxed = effect.create(self, source);
+            let (sb, _) = ShadowBorrow::<'_, Context>::new(self);
+            boxed.execute(sb);
         } else {
             self.cast_spell(id);
         }
