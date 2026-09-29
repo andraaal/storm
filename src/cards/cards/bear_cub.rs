@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-pub(crate) const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
+pub const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
     name: "Bear Cub",
     casting_cost: Cost {
         mana_cost: ManaCost {

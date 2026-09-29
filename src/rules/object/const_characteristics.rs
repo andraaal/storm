@@ -11,11 +11,11 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(crate) struct ConstCharacteristics {
-    pub(crate) name: &'static str,
-    pub(crate) casting_cost: Cost,
-    pub(crate) types: &'static [ObjectType],
-    pub(crate) super_types: FlagSet<Supertype>,
+pub struct ConstCharacteristics {
+    pub name: &'static str,
+    pub casting_cost: Cost,
+    pub types: &'static [ObjectType],
+    pub super_types: FlagSet<Supertype>,
     // pub(crate) activated_abilities: &'static [ActivatedAbility],
     pub(crate) static_abilities: &'static [DynamicAbility],
     // pub(crate) triggered_abilities: &'static [TriggeredAbility],

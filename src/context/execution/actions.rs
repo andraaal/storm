@@ -112,14 +112,14 @@ impl Context {
         }
     }
 
-    fn draw(&mut self, player: PlayerId, amount: u32) {
+    pub(crate) fn draw(&mut self, player: PlayerId, amount: u32) {
         let amount = amount as usize;
         let action = match player {
             PlayerId::DrawPlayer => {
                 let top = self
                     .game
                     .objects
-                    .draw_hand
+                    .draw_library
                     .iter()
                     .take(amount)
                     .map(|i| i.0.into())
@@ -136,7 +136,7 @@ impl Context {
                 let top = self
                     .game
                     .objects
-                    .play_hand
+                    .play_library
                     .iter()
                     .take(amount)
                     .map(|i| i.0.into())

@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::ops::{Index, IndexMut};
 
 use crate::game::objects::Objects;
@@ -7,15 +8,16 @@ use crate::rules::id::Timestamp;
 
 use crate::rules::player::Player;
 use crate::rules::player::PlayerId;
-use crate::rules::turn::{Phase, Step};
+use crate::rules::turn::{Phase, Step, TURN_STEPS};
 
 pub(crate) mod object_iter;
 pub(crate) mod objects;
 mod stack;
 
-pub(crate) struct Game {
-    pub(crate) players: Players,
-    pub(crate) objects: Objects,
+pub struct Game {
+    pub players: Players,
+    pub objects: Objects,
+    pub seed: Option<u64>,
 
     pub(crate) continuous_effects: Vec<FixedAbilityGroup>,
     pub(crate) replacement_effects: Vec<ReplacementEffect>,
@@ -23,27 +25,38 @@ pub(crate) struct Game {
     pub(crate) current_timestamp: Timestamp,
     pub(crate) current_step: Step,
     pub(crate) current_phase: Phase,
-    pub(crate) queued_steps: Vec<Step>,
+    pub(crate) queued_steps: VecDeque<Step>,
     pub(crate) priority: PlayerId,
     pub(crate) last_non_passed_priority: PlayerId,
     pub(crate) active_player: PlayerId,
 }
 
 impl Game {
-    pub(crate) fn new(objects: Objects) -> Self {
+    pub(crate) fn new(objects: Objects, seed: Option<u64>) -> Self {
+        // The first turn starts after the untap step.  Untap has no priority,
+        // so the first priority window is the active player's upkeep.
+        let mut queued_steps = VecDeque::from(TURN_STEPS.to_vec());
+        queued_steps.pop_front(); // Untap
+        queued_steps.pop_front(); // Upkeep
+
         Self {
             players: Players::new(),
             objects,
+            seed,
             continuous_effects: Vec::new(),
             replacement_effects: Vec::new(),
             current_timestamp: Timestamp::new(),
             current_step: Step::Upkeep,
             current_phase: Phase::Beginning,
-            queued_steps: Vec::new(),
+            queued_steps,
             priority: PlayerId::PlayPlayer,
-            last_non_passed_priority: PlayerId::DrawPlayer,
+            last_non_passed_priority: PlayerId::PlayPlayer,
             active_player: PlayerId::PlayPlayer,
         }
+    }
+
+    pub(crate) fn shuffle_libraries(&mut self) {
+        self.objects.shuffle(self.seed.unwrap_or(0));
     }
 
     pub(crate) fn generate_timestamp(&mut self) -> Timestamp {
@@ -62,9 +75,9 @@ impl Game {
     }
 }
 
-pub(crate) struct Players {
-    pub(crate) play_player: Player,
-    pub(crate) draw_player: Player,
+pub struct Players {
+    pub play_player: Player,
+    pub draw_player: Player,
 }
 
 impl Players {

@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-pub(crate) const LIGHTNING_BOLT: ConstCharacteristics = ConstCharacteristics {
+pub const LIGHTNING_BOLT: ConstCharacteristics = ConstCharacteristics {
     name: "Lightning Bolt",
     casting_cost: Cost {
         mana_cost: ManaCost {

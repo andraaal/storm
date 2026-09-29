@@ -16,6 +16,7 @@ pub struct ContextBuilder {
     config: Option<Config>,
     play_deck: Vec<&'static ConstCharacteristics>,
     draw_deck: Vec<&'static ConstCharacteristics>,
+    seed: Option<u64>,
 }
 
 impl ContextBuilder {
@@ -25,19 +26,28 @@ impl ContextBuilder {
             config: None,
             play_deck: Vec::new(),
             draw_deck: Vec::new(),
+            seed: None,
         }
     }
 
-    pub fn with_config(&mut self, config: Config) {
+    pub fn with_config(mut self, config: Config) -> Self {
         self.config = Some(config);
+        self
     }
 
-    pub fn with_play_deck(&mut self, deck: Vec<&'static ConstCharacteristics>) {
+    pub fn with_play_deck(mut self, deck: Vec<&'static ConstCharacteristics>) -> Self {
         self.play_deck = deck;
+        self
     }
 
-    pub fn with_draw_deck(&mut self, deck: Vec<&'static ConstCharacteristics>) {
+    pub fn with_draw_deck(mut self, deck: Vec<&'static ConstCharacteristics>) -> Self {
         self.draw_deck = deck;
+        self
+    }
+
+    pub fn with_seed(mut self, seed: u64) -> Self {
+        self.seed = Some(seed);
+        self
     }
 
     pub fn build(self) -> Result<Context, EngineError> {
@@ -47,6 +57,15 @@ impl ContextBuilder {
 
         if self.play_deck.len() < 7 || self.draw_deck.len() < 7 {
             return Err(EngineError::TooSmallDeck);
+        }
+
+        if self
+            .play_deck
+            .iter()
+            .chain(self.draw_deck.iter())
+            .any(|card| !crate::cards::is_supported(card))
+        {
+            return Err(EngineError::UnsupportedCard);
         }
 
         let config = self.config.unwrap_or_default();
@@ -61,7 +80,7 @@ impl ContextBuilder {
                 .map(|r| GameObject::new(r, Timestamp::new()))
                 .collect(),
         );
-        let ctx = Context::new(controller, config, objects);
+        let ctx = Context::new(controller, config, objects, self.seed);
 
         Ok(ctx)
     }

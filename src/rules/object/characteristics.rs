@@ -3,9 +3,7 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::rules::{
-    ability::{
-        static_ability::{DynamicAbilityGroup, DynamicEffect, IntrinsicAbility},
-    },
+    ability::static_ability::{DynamicAbilityGroup, DynamicEffect, IntrinsicAbility},
     cost::Cost,
     id::Timestamp,
     object::{

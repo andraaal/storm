@@ -22,25 +22,51 @@ pub enum EngineError {
     TooSmallDeck,
     #[error("No deck provided")]
     NoDeck,
+    #[error("Deck contains an unsupported card")]
+    UnsupportedCard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameResult {
+    Winner(crate::rules::player::PlayerId),
 }
 
 pub struct Context {
     pub game: Game,
     pub(crate) controller: Controller,
     config: Config,
+    result: Option<GameResult>,
 }
 
 impl Context {
-    pub(crate) fn new(controller: Controller, config: Config, objects: Objects) -> Self {
+    pub(crate) fn new(
+        controller: Controller,
+        config: Config,
+        objects: Objects,
+        seed: Option<u64>,
+    ) -> Self {
         Context {
-            game: Game::new(objects),
+            game: Game::new(objects, seed),
             controller,
             config,
+            result: None,
         }
     }
 
     /// Start the game: performs initial draws and basic checks
     pub fn start(&mut self) -> Result<(), EngineError> {
-        todo!()
+        if self.result.is_some() {
+            return Ok(());
+        }
+
+        self.game.shuffle_libraries();
+        self.draw(crate::rules::player::PlayerId::PlayPlayer, 7);
+        self.draw(crate::rules::player::PlayerId::DrawPlayer, 7);
+        self.request_priority();
+        Ok(())
+    }
+
+    pub fn result(&self) -> Option<GameResult> {
+        self.result
     }
 }

@@ -6,7 +6,7 @@ use crate::cards::Spells;
 use crate::rules::cost::{Cost, ManaCost};
 use crate::rules::object::{const_characteristics::ConstCharacteristics, types::ObjectType};
 
-pub(crate) const GIANT_GROWTH: ConstCharacteristics = ConstCharacteristics {
+pub const GIANT_GROWTH: ConstCharacteristics = ConstCharacteristics {
     name: "Giant Growth",
     casting_cost: Cost {
         mana_cost: ManaCost {

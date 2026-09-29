@@ -1,9 +1,9 @@
-pub(crate) struct Player {
-    pub(crate) life: i32,
+pub struct Player {
+    pub life: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PlayerId {
+pub enum PlayerId {
     PlayPlayer,
     DrawPlayer,
 }

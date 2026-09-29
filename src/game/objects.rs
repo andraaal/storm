@@ -1,7 +1,6 @@
-use slotmap::{
-    Key, SlotMap,
-    basic::{Iter, IterMut, Keys, Values, ValuesMut},
-};
+use std::{marker::PhantomData, slice};
+
+use slotmap::{Key, SlotMap};
 
 use crate::rules::{
     ability::effect::{Ability, Spell},
@@ -11,21 +10,24 @@ use crate::rules::{
     zone::{BattlefieldInfo, ExileInfo, StackInfo},
 };
 
-pub(crate) struct Objects {
-    pub(crate) battlefield: MyMap<BattlefieldId, (BattlefieldInfo, GameObject)>,
-    pub(crate) spell_stack: MyMap<SpellStackId, (StackInfo, Box<dyn Spell>)>,
-    pub(crate) ability_stack: MyMap<AbilityStackId, (StackInfo, Box<dyn Ability>)>,
-    pub(crate) play_hand: MyMap<PlayHandId, GameObject>,
-    pub(crate) draw_hand: MyMap<DrawHandId, GameObject>,
-    pub(crate) exile: MyMap<ExileId, (ExileInfo, GameObject)>,
-    pub(crate) play_library: MyMap<PlayLibraryId, GameObject>,
-    pub(crate) draw_library: MyMap<DrawLibraryId, GameObject>,
-    pub(crate) play_graveyard: MyMap<PlayGraveyardId, GameObject>,
-    pub(crate) draw_graveyard: MyMap<DrawGraveyardId, GameObject>,
-    pub(crate) resolving_spell: Option<AnyId>,
+pub struct Objects {
+    pub battlefield: MyMap<BattlefieldId, (BattlefieldInfo, GameObject)>,
+    pub spell_stack: MyMap<SpellStackId, (StackInfo, Box<dyn Spell>)>,
+    pub ability_stack: MyMap<AbilityStackId, (StackInfo, Box<dyn Ability>)>,
+    pub play_hand: MyMap<PlayHandId, GameObject>,
+    pub draw_hand: MyMap<DrawHandId, GameObject>,
+    pub exile: MyMap<ExileId, (ExileInfo, GameObject)>,
+    pub play_library: MyMap<PlayLibraryId, GameObject>,
+    pub draw_library: MyMap<DrawLibraryId, GameObject>,
+    pub play_graveyard: MyMap<PlayGraveyardId, GameObject>,
+    pub draw_graveyard: MyMap<DrawGraveyardId, GameObject>,
 }
 
 impl Objects {
+    pub(crate) fn shuffle(&mut self, seed: u64) {
+        self.play_library.shuffle(seed);
+        self.draw_library.shuffle(seed.wrapping_add(1));
+    }
     pub(crate) fn new(play_deck: Vec<GameObject>, draw_deck: Vec<GameObject>) -> Self {
         let mut play = MyMap::new();
         let mut draw = MyMap::new();
@@ -49,7 +51,6 @@ impl Objects {
             draw_library: draw,
             play_graveyard: MyMap::new(),
             draw_graveyard: MyMap::new(),
-            resolving_spell: None,
         }
     }
 
@@ -219,9 +220,32 @@ impl Objects {
             }
         }
     }
+
+    pub(crate) fn move_source_to_battlefield(
+        &mut self,
+        mut source: GameObject,
+        dest: BattlefieldInfo,
+        stmp: Timestamp,
+    ) -> BattlefieldId {
+        source.timestamp = stmp;
+        self.battlefield.insert((dest, source))
+    }
+
+    pub(crate) fn move_source_to_graveyard(
+        &mut self,
+        mut source: GameObject,
+        owner: PlayerId,
+        stmp: Timestamp,
+    ) -> Option<AnyId> {
+        source.timestamp = stmp;
+        match owner {
+            PlayerId::DrawPlayer => Some(self.draw_graveyard.insert(source).into()),
+            PlayerId::PlayPlayer => Some(self.play_graveyard.insert(source).into()),
+        }
+    }
 }
 
-pub(crate) struct MyMap<K: Key, V> {
+pub struct MyMap<K: Key, V> {
     map: SlotMap<K, V>,
     order: Vec<K>,
 }
@@ -255,32 +279,88 @@ impl<K: Key, V> MyMap<K, V> {
         self.map.get_mut(key)
     }
 
-    pub(crate) fn values(&self) -> Values<'_, K, V> {
-        self.map.values()
+    pub(crate) fn values(&self) -> impl Iterator<Item = &V> {
+        self.order.iter().filter_map(|key| self.map.get(*key))
     }
 
-    pub(crate) fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
-        self.map.values_mut()
+    pub(crate) fn values_mut(&mut self) -> OrderedValuesMut<'_, K, V> {
+        OrderedValuesMut {
+            map: &mut self.map,
+            order: self.order.iter(),
+            marker: PhantomData,
+        }
     }
 
-    pub(crate) fn keys(&self) -> Keys<'_, K, V> {
-        self.map.keys()
+    pub(crate) fn keys(&self) -> impl Iterator<Item = K> + '_ {
+        self.order
+            .iter()
+            .filter_map(|key| self.map.get(*key).map(|_| *key))
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, K, V> {
-        self.map.iter()
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (K, &V)> {
+        self.order
+            .iter()
+            .filter_map(|key| self.map.get(*key).map(|value| (*key, value)))
     }
 
-    pub(crate) fn iter_mut(&mut self) -> IterMut<'_, K, V> {
-        self.map.iter_mut()
+    pub(crate) fn iter_mut(&mut self) -> OrderedIterMut<'_, K, V> {
+        OrderedIterMut {
+            map: &mut self.map,
+            order: self.order.iter(),
+            marker: PhantomData,
+        }
     }
 
     pub(crate) fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.map.len()
+    }
+
+    fn shuffle(&mut self, mut seed: u64) {
+        for i in (1..self.order.len()).rev() {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            let j = (seed as usize) % (i + 1);
+            self.order.swap(i, j);
+        }
+    }
+}
+
+pub(crate) struct OrderedValuesMut<'a, K: Key, V> {
+    map: *mut SlotMap<K, V>,
+    order: slice::Iter<'a, K>,
+    marker: PhantomData<&'a mut SlotMap<K, V>>,
+}
+
+impl<'a, K: Key, V> Iterator for OrderedValuesMut<'a, K, V> {
+    type Item = &'a mut V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = *self.order.next()?;
+        // `order` contains each live key at most once, so yielded references
+        // are never aliased.
+        unsafe { (*self.map).get_mut(key) }
+    }
+}
+
+pub(crate) struct OrderedIterMut<'a, K: Key, V> {
+    map: *mut SlotMap<K, V>,
+    order: slice::Iter<'a, K>,
+    marker: PhantomData<&'a mut SlotMap<K, V>>,
+}
+
+impl<'a, K: Key, V> Iterator for OrderedIterMut<'a, K, V> {
+    type Item = (K, &'a mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = *self.order.next()?;
+        // `order` contains each live key at most once, so yielded references
+        // are never aliased.
+        unsafe { (*self.map).get_mut(key).map(|value| (key, value)) }
     }
 }
 

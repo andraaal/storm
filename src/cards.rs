@@ -10,10 +10,12 @@ use crate::rules::id::AnyId;
 use crate::rules::object::game_object::GameObject;
 use crate::rules::target::selector::Selector;
 use crate::rules::target::selector::SelectorList;
+use crate::rules::zone::StackInfo;
 use derive_more::From;
 
 pub(crate) mod cards {
     pub(crate) mod anthem_of_champions;
+    pub(crate) mod basic_lands;
     pub(crate) mod bear_cub;
     pub(crate) mod giant_growth;
     pub(crate) mod lightning_bolt;
@@ -34,6 +36,21 @@ pub(crate) mod behaviour {
     pub(crate) mod change_pt;
     pub(crate) mod deal_damage;
     pub(crate) mod default_info;
+}
+
+pub(crate) fn is_supported(
+    card: &'static crate::rules::object::const_characteristics::ConstCharacteristics,
+) -> bool {
+    matches!(
+        card.name,
+        "Bear Cub"
+            | "Lightning Bolt"
+            | "Giant Growth"
+            | "Anthem of Champions"
+            | "Plains"
+            | "Forest"
+            | "Mountain"
+    )
 }
 
 macro_rules! effects {
@@ -57,7 +74,7 @@ macro_rules! effects {
         }
 
         impl Spells {
-            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject) -> Box<dyn Spell> {
+            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject, info: StackInfo) -> Box<dyn Spell> {
                 match self {
                     $(
                         Self::$name => {
@@ -66,7 +83,8 @@ macro_rules! effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source,
+                                source: Some(source),
+                                stack_info: info,
                                 kind: std::marker::PhantomData::<ToGraveyard>,
                             })
                         }
@@ -76,7 +94,7 @@ macro_rules! effects {
         }
 
         impl StackAbilities {
-            fn create(&self, ctx: &mut Context, source: AnyId) -> Box<dyn Ability> {
+            fn create(&self, ctx: &mut Context, source: AnyId, info: StackInfo) -> Box<dyn Ability> {
                 match self {
                     $(
                         Self::$name => {
@@ -85,7 +103,8 @@ macro_rules! effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source,
+                                source: Some(source),
+                                stack_info: info,
                                 kind: std::marker::PhantomData::<Vanish>,
                             })
                         }
@@ -172,7 +191,7 @@ macro_rules! permanent_effects {
         }
 
         impl PermanentEffects {
-            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject) -> Box<dyn Spell> {
+            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject, info: StackInfo) -> Box<dyn Spell> {
                 match self {
                     $(
                         Self::$name => {
@@ -181,7 +200,8 @@ macro_rules! permanent_effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source,
+                                source: Some(source),
+                                stack_info: info,
                                 kind: std::marker::PhantomData::<ToBattlefield>,
                             })
                         }

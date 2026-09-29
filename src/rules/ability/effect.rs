@@ -4,8 +4,11 @@ use crate::{
     context::Context,
     nested_borrow::{NestedBorrow, ShadowBorrow},
     rules::{
-        ability::behaviour::BehaviourList, game_action::GameAction, id::AnyId,
-        object::game_object::GameObject, target::selector::SelectorList, zone::BattlefieldInfo,
+        ability::behaviour::BehaviourList,
+        id::AnyId,
+        object::game_object::GameObject,
+        target::selector::SelectorList,
+        zone::{BattlefieldInfo, StackInfo},
     },
 };
 
@@ -21,7 +24,8 @@ pub struct StackObject<E: StackDefinition, R: ResolutionBehaviour<Return = E::Re
     pub(crate) x: E::X,
     pub(crate) modes: E::Modes,
     pub(crate) data: <E::Behaviours as BehaviourList>::Data,
-    pub(crate) source: R::StackSource,
+    pub(crate) source: Option<R::StackSource>,
+    pub(crate) stack_info: StackInfo,
 
     pub(crate) kind: std::marker::PhantomData<R>,
 }
@@ -42,12 +46,18 @@ impl ResolutionBehaviour for ToBattlefield {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
+        let source = guard
+            .object()
+            .source
+            .as_ref()
+            .expect("stack source already consumed")
+            .clone();
         let info = unsafe { guard.call_unsafe(E::execute) };
         let ctx = guard.finish();
-        let this = ctx.game.objects.resolving_spell.unwrap();
-        ctx.execute(vec![GameAction::MoveToBattlefield {
-            objects: vec![(this, info)],
-        }]);
+        let timestamp = ctx.game.generate_timestamp();
+        ctx.game
+            .objects
+            .move_source_to_battlefield(source, info, timestamp);
     }
 }
 pub(crate) struct ToGraveyard;
@@ -57,12 +67,19 @@ impl ResolutionBehaviour for ToGraveyard {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
+        let source = guard
+            .object()
+            .source
+            .as_ref()
+            .expect("stack source already consumed")
+            .clone();
+        let stack_info = guard.object().stack_info;
         guard.call(E::execute);
         let ctx = guard.finish();
-        let this = ctx.game.objects.resolving_spell.unwrap();
-        ctx.execute(vec![GameAction::MoveToGraveyard {
-            objects: vec![this],
-        }]);
+        let timestamp = ctx.game.generate_timestamp();
+        ctx.game
+            .objects
+            .move_source_to_graveyard(source, stack_info.owner, timestamp);
     }
 }
 pub(crate) struct Vanish;
@@ -72,10 +89,14 @@ impl ResolutionBehaviour for Vanish {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
+        let source = *guard
+            .object()
+            .source
+            .as_ref()
+            .expect("stack source already consumed");
         guard.call(E::execute);
         let ctx = guard.finish();
-        let this = ctx.game.objects.resolving_spell.unwrap();
-        this.remove(&mut ctx.game.objects);
+        source.remove(&mut ctx.game.objects);
     }
 }
 
@@ -145,19 +166,19 @@ impl<E: StackDefinition, R: SpellResolutionBehaviour<Return = E::Return, StackSo
     Spell for SpellObject<E, R>
 {
     fn get_source(&self) -> &GameObject {
-        &self.source
+        self.source.as_ref().expect("stack source already consumed")
     }
     fn get_source_mut(&mut self) -> &mut GameObject {
-        &mut self.source
+        self.source.as_mut().expect("stack source already consumed")
     }
     fn take_source(self: Box<Self>) -> GameObject {
-        self.source
+        self.source.expect("stack source already consumed")
     }
 }
 
 impl<E: StackDefinition<Return = ()>> Ability for AbilityObject<E> {
     fn get_source(&self) -> AnyId {
-        self.source
+        self.source.expect("stack source already consumed")
     }
 }
 

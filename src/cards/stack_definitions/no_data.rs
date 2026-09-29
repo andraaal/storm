@@ -1,10 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::rules::{
-    ability::{
-        behaviour::{BehaviourList, EmptyData},
-        effect::{StackDefinition, WithoutModes, WithoutX},
-    },
+use crate::rules::ability::{
+    behaviour::{BehaviourList, EmptyData},
+    effect::{StackDefinition, WithoutModes, WithoutX},
 };
 
 pub(crate) struct NoData<B: BehaviourList> {

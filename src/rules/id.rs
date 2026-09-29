@@ -9,20 +9,20 @@ use crate::{
 };
 
 new_key_type! {
-    pub(crate) struct SpellStackId;
-    pub(crate) struct AbilityStackId;
-    pub(crate) struct BattlefieldId;
-    pub(crate) struct PlayGraveyardId;
-    pub(crate) struct DrawGraveyardId;
-    pub(crate) struct ExileId;
-    pub(crate) struct PlayHandId;
-    pub(crate) struct DrawHandId;
-    pub(crate) struct PlayLibraryId;
-    pub(crate) struct DrawLibraryId;
+    pub struct SpellStackId;
+    pub struct AbilityStackId;
+    pub struct BattlefieldId;
+    pub struct PlayGraveyardId;
+    pub struct DrawGraveyardId;
+    pub struct ExileId;
+    pub struct PlayHandId;
+    pub struct DrawHandId;
+    pub struct PlayLibraryId;
+    pub struct DrawLibraryId;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, From)]
-pub(crate) enum AnyId {
+pub enum AnyId {
     Stack(SpellStackId),
     Battlefield(BattlefieldId),
     PlayGraveyard(PlayGraveyardId),

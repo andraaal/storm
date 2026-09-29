@@ -5,6 +5,17 @@ use crate::rules::player_action::PlayerAction;
 use crate::rules::turn::{Step, TURN_STEPS};
 
 impl Context {
+    pub(crate) fn request_priority(&mut self) {
+        let action = self
+            .controller
+            .choose_action(&self.game, self.possible_actions());
+
+        match action {
+            PlayerAction::PassPriority => self.pass_player_priority(),
+            PlayerAction::PlayCard(id) => self.play_card(id),
+        }
+    }
+
     pub(crate) fn game_loop(&mut self) -> ! {
         loop {
             let action = self
@@ -45,34 +56,65 @@ impl Context {
     }
 
     pub(crate) fn pass_player_priority(&mut self) {
-        self.game.priority = match self.game.priority {
+        let next_priority = match self.game.priority {
             PlayerId::PlayPlayer => PlayerId::DrawPlayer,
             PlayerId::DrawPlayer => PlayerId::PlayPlayer,
         };
-        if self.game.last_non_passed_priority == self.game.priority {
-            if !(self.game.objects.spell_stack.is_empty()
-                && self.game.objects.ability_stack.is_empty())
-            {
-                // Resolve top of stack
-            } else {
+
+        // A step ends only when priority has made a complete circuit back to
+        // the player who last took a non-pass action.  In particular, do not
+        // compare against the player who is currently passing: that makes the
+        // first pass of a new priority window advance the turn.
+        if next_priority == self.game.last_non_passed_priority {
+            if self.stack_is_empty() {
                 self.advance_step();
+            } else {
+                // Resolution is intentionally still unfinished.  The stack
+                // remains in place, but passing must not advance the step.
+                // Model the priority window that follows resolution.
+                self.game.priority = self.game.active_player;
+                self.game.last_non_passed_priority = self.game.active_player;
             }
+        } else {
+            self.game.priority = next_priority;
         }
     }
 
     fn advance_step(&mut self) {
         // Until end of ...-step effects expire (previous step)
+        loop {
+            if self.game.queued_steps.is_empty() {
+                self.game.queued_steps.extend(TURN_STEPS);
+            }
+            let next_step = self.game.queued_steps.pop_front().unwrap();
+            self.game.current_step = next_step;
+            self.game.current_phase = next_step.phase();
 
-        if self.game.queued_steps.is_empty() {
-            self.game.queued_steps.extend_from_slice(&TURN_STEPS);
+            // Until ...-step effects expire (upcoming step)
+            // At the beginning of ...-step triggers are added to pending
+            self.exec_turn_based_actions();
+
+            // Untap and cleanup have no priority window.  Cleanup is the
+            // boundary between turns, so the other player becomes active
+            // before the next turn's untap step.
+            if next_step == Step::Cleanup {
+                self.game.active_player = match self.game.active_player {
+                    PlayerId::PlayPlayer => PlayerId::DrawPlayer,
+                    PlayerId::DrawPlayer => PlayerId::PlayPlayer,
+                };
+            }
+            if next_step == Step::Untap || next_step == Step::Cleanup {
+                continue;
+            }
+
+            self.game.priority = self.game.active_player;
+            self.game.last_non_passed_priority = self.game.active_player;
+            break;
         }
-        let next_step = self.game.queued_steps.pop().unwrap();
-        self.game.current_step = next_step;
-        self.game.current_phase = next_step.phase();
+    }
 
-        // Until ...-step effects expire (upcoming step)
-        // At the beginning of ...-step tiggers are added to pending
-        // Do turn-based actions
+    fn stack_is_empty(&self) -> bool {
+        self.game.objects.spell_stack.is_empty() && self.game.objects.ability_stack.is_empty()
     }
 
     fn exec_turn_based_actions(&mut self) {
@@ -87,7 +129,19 @@ impl Context {
             }
             Step::Untap => {
                 let untap_action = GameAction::Untap {
-                    objects: self.game.objects.battlefield.keys().collect::<Vec<_>>(),
+                    objects: self
+                        .game
+                        .objects
+                        .battlefield
+                        .iter()
+                        .filter_map(|(id, (info, _))| {
+                            if info.controller == active_player {
+                                Some(id)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>(),
                 };
                 self.execute(vec![untap_action]);
             }
@@ -99,7 +153,7 @@ impl Context {
                 if hand_size > 7 {
                     let action = GameAction::Discard {
                         player: active_player,
-                        amount: (hand_size..hand_size + 1).into(),
+                        amount: (hand_size - 7..hand_size - 6).into(),
                     };
                     self.execute(vec![action]);
                 }
