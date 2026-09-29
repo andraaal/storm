@@ -17,7 +17,6 @@ mod stack;
 pub struct Game {
     pub players: Players,
     pub objects: Objects,
-    pub seed: Option<u64>,
 
     pub(crate) continuous_effects: Vec<FixedAbilityGroup>,
     pub(crate) replacement_effects: Vec<ReplacementEffect>,
@@ -32,7 +31,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub(crate) fn new(objects: Objects, seed: Option<u64>) -> Self {
+    pub(crate) fn new(objects: Objects) -> Self {
         // The first turn starts after the untap step.  Untap has no priority,
         // so the first priority window is the active player's upkeep.
         let mut queued_steps = VecDeque::from(TURN_STEPS.to_vec());
@@ -42,7 +41,6 @@ impl Game {
         Self {
             players: Players::new(),
             objects,
-            seed,
             continuous_effects: Vec::new(),
             replacement_effects: Vec::new(),
             current_timestamp: Timestamp::new(),
@@ -56,7 +54,7 @@ impl Game {
     }
 
     pub(crate) fn shuffle_libraries(&mut self) {
-        self.objects.shuffle(self.seed.unwrap_or(0));
+        self.objects.shuffle();
     }
 
     pub(crate) fn generate_timestamp(&mut self) -> Timestamp {

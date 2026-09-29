@@ -5,19 +5,8 @@ use crate::rules::player_action::PlayerAction;
 use crate::rules::turn::{Step, TURN_STEPS};
 
 impl Context {
-    pub(crate) fn request_priority(&mut self) {
-        let action = self
-            .controller
-            .choose_action(&self.game, self.possible_actions());
-
-        match action {
-            PlayerAction::PassPriority => self.pass_player_priority(),
-            PlayerAction::PlayCard(id) => self.play_card(id),
-        }
-    }
-
-    pub(crate) fn game_loop(&mut self) -> ! {
-        loop {
+    pub(crate) fn game_loop(&mut self) {
+        while self.result.is_none() {
             let action = self
                 .controller
                 .choose_action(&self.game, self.possible_actions());
@@ -60,18 +49,10 @@ impl Context {
             PlayerId::PlayPlayer => PlayerId::DrawPlayer,
             PlayerId::DrawPlayer => PlayerId::PlayPlayer,
         };
-
-        // A step ends only when priority has made a complete circuit back to
-        // the player who last took a non-pass action.  In particular, do not
-        // compare against the player who is currently passing: that makes the
-        // first pass of a new priority window advance the turn.
         if next_priority == self.game.last_non_passed_priority {
             if self.stack_is_empty() {
                 self.advance_step();
             } else {
-                // Resolution is intentionally still unfinished.  The stack
-                // remains in place, but passing must not advance the step.
-                // Model the priority window that follows resolution.
                 self.game.priority = self.game.active_player;
                 self.game.last_non_passed_priority = self.game.active_player;
             }

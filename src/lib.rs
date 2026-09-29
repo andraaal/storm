@@ -1,4 +1,5 @@
-// #![feature(checked_type_aliases)]
+#![allow(dead_code, private_interfaces)]
+#![feature(checked_type_aliases)]
 #![feature(min_specialization)]
 
 mod cards;
@@ -109,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn public_contract_builds_and_starts_a_seeded_game() {
+    fn public_contract_builds_and_starts_a_game() {
         let deck = vec![
             &FOREST,
             &BEAR_CUB,
@@ -122,7 +123,6 @@ mod tests {
         let mut context = ContextBuilder::new(Box::new(PassInput))
             .with_play_deck(deck.clone())
             .with_draw_deck(deck)
-            .with_seed(7)
             .build()
             .expect("valid alpha decks");
 
@@ -132,7 +132,6 @@ mod tests {
         assert_eq!(context.game.players.draw_player.life, 20);
         assert_eq!(context.game.objects.play_hand.len(), 7);
         assert_eq!(context.game.objects.draw_hand.len(), 7);
-        assert_eq!(context.game.seed, Some(7));
     }
 
     #[test]

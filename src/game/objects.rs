@@ -21,12 +21,13 @@ pub struct Objects {
     pub draw_library: MyMap<DrawLibraryId, GameObject>,
     pub play_graveyard: MyMap<PlayGraveyardId, GameObject>,
     pub draw_graveyard: MyMap<DrawGraveyardId, GameObject>,
+    pub resolving_id: Option<AnyId>,
 }
 
 impl Objects {
-    pub(crate) fn shuffle(&mut self, seed: u64) {
-        self.play_library.shuffle(seed);
-        self.draw_library.shuffle(seed.wrapping_add(1));
+    pub(crate) fn shuffle(&mut self) {
+        self.play_library.shuffle();
+        self.draw_library.shuffle();
     }
     pub(crate) fn new(play_deck: Vec<GameObject>, draw_deck: Vec<GameObject>) -> Self {
         let mut play = MyMap::new();
@@ -51,6 +52,7 @@ impl Objects {
             draw_library: draw,
             play_graveyard: MyMap::new(),
             draw_graveyard: MyMap::new(),
+            resolving_id: None,
         }
     }
 
@@ -319,14 +321,8 @@ impl<K: Key, V> MyMap<K, V> {
         self.map.len()
     }
 
-    fn shuffle(&mut self, mut seed: u64) {
-        for i in (1..self.order.len()).rev() {
-            seed ^= seed << 13;
-            seed ^= seed >> 7;
-            seed ^= seed << 17;
-            let j = (seed as usize) % (i + 1);
-            self.order.swap(i, j);
-        }
+    fn shuffle(&mut self) {
+        // Not yet implemented
     }
 }
 

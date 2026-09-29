@@ -10,7 +10,6 @@ use crate::rules::id::AnyId;
 use crate::rules::object::game_object::GameObject;
 use crate::rules::target::selector::Selector;
 use crate::rules::target::selector::SelectorList;
-use crate::rules::zone::StackInfo;
 use derive_more::From;
 
 pub(crate) mod cards {
@@ -38,21 +37,6 @@ pub(crate) mod behaviour {
     pub(crate) mod default_info;
 }
 
-pub(crate) fn is_supported(
-    card: &'static crate::rules::object::const_characteristics::ConstCharacteristics,
-) -> bool {
-    matches!(
-        card.name,
-        "Bear Cub"
-            | "Lightning Bolt"
-            | "Giant Growth"
-            | "Anthem of Champions"
-            | "Plains"
-            | "Forest"
-            | "Mountain"
-    )
-}
-
 macro_rules! effects {
     (
         $(
@@ -60,21 +44,21 @@ macro_rules! effects {
         ),* $(,)?
     ) => {
         #[derive(Clone, Copy, From)]
-        pub(crate) enum Spells {
+        pub enum Spells {
             $(
                 $name,
             )*
         }
 
         #[derive(Clone, Copy, From)]
-        pub(crate) enum StackAbilities {
+        pub enum StackAbilities {
             $(
                 $name,
             )*
         }
 
         impl Spells {
-            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject, info: StackInfo) -> Box<dyn Spell> {
+            pub fn create(&self, ctx: &mut Context, source: GameObject) -> Box<dyn Spell> {
                 match self {
                     $(
                         Self::$name => {
@@ -83,8 +67,7 @@ macro_rules! effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source: Some(source),
-                                stack_info: info,
+                                source,
                                 kind: std::marker::PhantomData::<ToGraveyard>,
                             })
                         }
@@ -94,7 +77,7 @@ macro_rules! effects {
         }
 
         impl StackAbilities {
-            fn create(&self, ctx: &mut Context, source: AnyId, info: StackInfo) -> Box<dyn Ability> {
+            fn create(&self, ctx: &mut Context, source: AnyId) -> Box<dyn Ability> {
                 match self {
                     $(
                         Self::$name => {
@@ -103,8 +86,7 @@ macro_rules! effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source: Some(source),
-                                stack_info: info,
+                                source,
                                 kind: std::marker::PhantomData::<Vanish>,
                             })
                         }
@@ -123,14 +105,14 @@ macro_rules! static_abilities {
     ) => {
 
         #[derive(Clone, Copy, From)]
-        pub(crate) enum StaticAbilities {
+        pub enum StaticAbilities {
             $(
                 $name,
             )*
         }
 
         impl StaticAbilities {
-            pub(crate) fn apply(&self, ctx: &mut Context) {
+            pub fn apply(&self, ctx: &mut Context) {
                 match self {
                     $(
                         Self::$name => {
@@ -154,14 +136,14 @@ macro_rules! enter_abilities {
     ) => {
 
         #[derive(Clone, Copy, From)]
-        pub(crate) enum EnterAbilities {
+        pub enum EnterAbilities {
             $(
                 $name,
             )*
         }
 
         impl EnterAbilities {
-            pub(crate) fn create(&self, ctx: &mut Context) -> BattlefieldInfo {
+            pub fn create(&self, ctx: &mut Context) -> BattlefieldInfo {
                 match self {
                     $(
                         Self::$name => {
@@ -184,14 +166,14 @@ macro_rules! permanent_effects {
         ),* $(,)?
     ) => {
         #[derive(Clone, Copy, From)]
-        pub(crate) enum PermanentEffects {
+        pub enum PermanentEffects {
             $(
                 $name,
             )*
         }
 
         impl PermanentEffects {
-            pub(crate) fn create(&self, ctx: &mut Context, source: GameObject, info: StackInfo) -> Box<dyn Spell> {
+            pub fn create(&self, ctx: &mut Context, source: GameObject) -> Box<dyn Spell> {
                 match self {
                     $(
                         Self::$name => {
@@ -200,8 +182,7 @@ macro_rules! permanent_effects {
                                 x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
                                 modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
                                 data: <$type as StackDefinition>::choose_data(ctx),
-                                source: Some(source),
-                                stack_info: info,
+                                source,
                                 kind: std::marker::PhantomData::<ToBattlefield>,
                             })
                         }

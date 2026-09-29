@@ -4,14 +4,12 @@ use crate::{
     context::Context,
     nested_borrow::{NestedBorrow, ShadowBorrow},
     rules::{
-        ability::behaviour::BehaviourList,
-        id::AnyId,
-        object::game_object::GameObject,
-        target::selector::SelectorList,
-        zone::{BattlefieldInfo, StackInfo},
+        ability::behaviour::BehaviourList, game_action::GameAction, id::AnyId,
+        object::game_object::GameObject, target::selector::SelectorList, zone::BattlefieldInfo,
     },
 };
 
+#[allow(dead_code)]
 pub trait StackObj {
     fn x(&self) -> Option<u32>;
     fn modes(&self) -> Option<&[usize]>;
@@ -24,8 +22,7 @@ pub struct StackObject<E: StackDefinition, R: ResolutionBehaviour<Return = E::Re
     pub(crate) x: E::X,
     pub(crate) modes: E::Modes,
     pub(crate) data: <E::Behaviours as BehaviourList>::Data,
-    pub(crate) source: Option<R::StackSource>,
-    pub(crate) stack_info: StackInfo,
+    pub(crate) source: R::StackSource,
 
     pub(crate) kind: std::marker::PhantomData<R>,
 }
@@ -46,18 +43,11 @@ impl ResolutionBehaviour for ToBattlefield {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
-        let source = guard
-            .object()
-            .source
-            .as_ref()
-            .expect("stack source already consumed")
-            .clone();
         let info = unsafe { guard.call_unsafe(E::execute) };
         let ctx = guard.finish();
-        let timestamp = ctx.game.generate_timestamp();
-        ctx.game
-            .objects
-            .move_source_to_battlefield(source, info, timestamp);
+        ctx.execute(vec![GameAction::MoveToBattlefield {
+            objects: vec![(ctx.game.objects.resolving_id.unwrap(), info)],
+        }]);
     }
 }
 pub(crate) struct ToGraveyard;
@@ -67,19 +57,11 @@ impl ResolutionBehaviour for ToGraveyard {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
-        let source = guard
-            .object()
-            .source
-            .as_ref()
-            .expect("stack source already consumed")
-            .clone();
-        let stack_info = guard.object().stack_info;
         guard.call(E::execute);
         let ctx = guard.finish();
-        let timestamp = ctx.game.generate_timestamp();
-        ctx.game
-            .objects
-            .move_source_to_graveyard(source, stack_info.owner, timestamp);
+        ctx.execute(vec![GameAction::MoveToGraveyard {
+            objects: vec![ctx.game.objects.resolving_id.unwrap()],
+        }]);
     }
 }
 pub(crate) struct Vanish;
@@ -89,14 +71,10 @@ impl ResolutionBehaviour for Vanish {
     fn execute<E: StackDefinition<Return = Self::Return>>(
         mut guard: NestedBorrow<'_, '_, StackObject<E, Self>, Context>,
     ) {
-        let source = *guard
-            .object()
-            .source
-            .as_ref()
-            .expect("stack source already consumed");
         guard.call(E::execute);
         let ctx = guard.finish();
-        source.remove(&mut ctx.game.objects);
+        let id = ctx.game.objects.resolving_id.unwrap();
+        id.remove(&mut ctx.game.objects);
     }
 }
 
@@ -166,23 +144,21 @@ impl<E: StackDefinition, R: SpellResolutionBehaviour<Return = E::Return, StackSo
     Spell for SpellObject<E, R>
 {
     fn get_source(&self) -> &GameObject {
-        self.source.as_ref().expect("stack source already consumed")
+        &self.source
     }
     fn get_source_mut(&mut self) -> &mut GameObject {
-        self.source.as_mut().expect("stack source already consumed")
+        &mut self.source
     }
     fn take_source(self: Box<Self>) -> GameObject {
-        self.source.expect("stack source already consumed")
+        self.source
     }
 }
 
 impl<E: StackDefinition<Return = ()>> Ability for AbilityObject<E> {
     fn get_source(&self) -> AnyId {
-        self.source.expect("stack source already consumed")
+        self.source
     }
 }
-
-// ================
 
 pub(crate) struct WithX(u32);
 pub(crate) struct WithoutX;

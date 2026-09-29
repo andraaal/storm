@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use crate::cards::{PermanentEffects, Spells};
 
 #[derive(Clone)]
-pub(crate) enum ObjectType {
+pub enum ObjectType {
     Creature {
         power: i64,
         toughness: i64,
@@ -38,7 +38,7 @@ pub(crate) enum ObjectType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum CreatureType {
+pub enum CreatureType {
     Elf,
     Goblin,
     Zombie,
@@ -58,7 +58,7 @@ pub(crate) enum CreatureType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PlaneswalkerType {
+pub enum PlaneswalkerType {
     Ajani,
     Chandra,
     Garruk,
@@ -71,19 +71,19 @@ pub(crate) enum PlaneswalkerType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ArtifactType {
+pub enum ArtifactType {
     Equipment,
     Vehicle,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum EnchantmentType {
+pub enum EnchantmentType {
     Aura,
     Rune,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum LandType {
+pub enum LandType {
     Cave,
     Forest,
     Island,
@@ -94,13 +94,13 @@ pub(crate) enum LandType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SpellType {
+pub enum SpellType {
     Arcane,
     Trap,
 }
 
 flags! {
-    pub(crate)enum Supertype: u8 {
+    pub enum Supertype: u8 {
         Basic,
         Legendary,
         Snow,
@@ -108,7 +108,7 @@ flags! {
 }
 
 impl LandType {
-    pub(crate) fn is_basic(&self) -> bool {
+    pub fn is_basic(&self) -> bool {
         match self {
             LandType::Cave => false,
             LandType::Forest => true,

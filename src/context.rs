@@ -1,11 +1,10 @@
 use thiserror::Error;
 
 use crate::{
-    context::{config::Config, controller::Controller},
+    context::controller::Controller,
     game::{Game, objects::Objects},
 };
 
-pub(crate) mod config;
 pub(crate) mod context_builder;
 pub(crate) mod controller;
 pub(crate) mod execution {
@@ -22,8 +21,6 @@ pub enum EngineError {
     TooSmallDeck,
     #[error("No deck provided")]
     NoDeck,
-    #[error("Deck contains an unsupported card")]
-    UnsupportedCard,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,39 +31,28 @@ pub enum GameResult {
 pub struct Context {
     pub game: Game,
     pub(crate) controller: Controller,
-    config: Config,
     result: Option<GameResult>,
 }
 
 impl Context {
-    pub(crate) fn new(
-        controller: Controller,
-        config: Config,
-        objects: Objects,
-        seed: Option<u64>,
-    ) -> Self {
+    pub(crate) fn new(controller: Controller, objects: Objects) -> Self {
         Context {
-            game: Game::new(objects, seed),
+            game: Game::new(objects),
             controller,
-            config,
             result: None,
         }
     }
 
     /// Start the game: performs initial draws and basic checks
-    pub fn start(&mut self) -> Result<(), EngineError> {
-        if self.result.is_some() {
-            return Ok(());
+    pub fn start(&mut self) -> Result<GameResult, EngineError> {
+        if let Some(res) = self.result {
+            return Ok(res);
         }
 
         self.game.shuffle_libraries();
         self.draw(crate::rules::player::PlayerId::PlayPlayer, 7);
         self.draw(crate::rules::player::PlayerId::DrawPlayer, 7);
-        self.request_priority();
-        Ok(())
-    }
-
-    pub fn result(&self) -> Option<GameResult> {
-        self.result
+        self.game_loop();
+        Ok(self.result.unwrap())
     }
 }

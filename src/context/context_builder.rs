@@ -1,7 +1,6 @@
 use crate::{
     context::{
         Context, EngineError,
-        config::Config,
         controller::{Controller, Input},
     },
     game::objects::Objects,
@@ -13,26 +12,17 @@ use crate::{
 
 pub struct ContextBuilder {
     controller: Box<dyn Input>,
-    config: Option<Config>,
     play_deck: Vec<&'static ConstCharacteristics>,
     draw_deck: Vec<&'static ConstCharacteristics>,
-    seed: Option<u64>,
 }
 
 impl ContextBuilder {
     pub fn new(controller: Box<dyn Input>) -> Self {
         ContextBuilder {
             controller,
-            config: None,
             play_deck: Vec::new(),
             draw_deck: Vec::new(),
-            seed: None,
         }
-    }
-
-    pub fn with_config(mut self, config: Config) -> Self {
-        self.config = Some(config);
-        self
     }
 
     pub fn with_play_deck(mut self, deck: Vec<&'static ConstCharacteristics>) -> Self {
@@ -45,11 +35,6 @@ impl ContextBuilder {
         self
     }
 
-    pub fn with_seed(mut self, seed: u64) -> Self {
-        self.seed = Some(seed);
-        self
-    }
-
     pub fn build(self) -> Result<Context, EngineError> {
         if self.play_deck.is_empty() || self.draw_deck.is_empty() {
             return Err(EngineError::NoDeck);
@@ -59,16 +44,6 @@ impl ContextBuilder {
             return Err(EngineError::TooSmallDeck);
         }
 
-        if self
-            .play_deck
-            .iter()
-            .chain(self.draw_deck.iter())
-            .any(|card| !crate::cards::is_supported(card))
-        {
-            return Err(EngineError::UnsupportedCard);
-        }
-
-        let config = self.config.unwrap_or_default();
         let controller = Controller::new(self.controller);
         let objects = Objects::new(
             self.play_deck
@@ -80,7 +55,7 @@ impl ContextBuilder {
                 .map(|r| GameObject::new(r, Timestamp::new()))
                 .collect(),
         );
-        let ctx = Context::new(controller, config, objects, self.seed);
+        let ctx = Context::new(controller, objects);
 
         Ok(ctx)
     }

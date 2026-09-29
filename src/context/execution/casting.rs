@@ -24,9 +24,9 @@ impl Context {
             ObjectType::Creature { effect, .. }
             | ObjectType::Artifact { effect, .. }
             | ObjectType::Planeswalker { effect, .. }
-            | ObjectType::Enchantment { effect, .. } => effect.create(self, obj, info),
+            | ObjectType::Enchantment { effect, .. } => effect.create(self, obj),
             ObjectType::Sorcery { effect, .. } | ObjectType::Instant { effect, .. } => {
-                effect.create(self, obj, info)
+                effect.create(self, obj)
             }
         };
 
@@ -36,9 +36,6 @@ impl Context {
 
     pub(crate) fn play_card(&mut self, id: AnyId) {
         self.validate_cast_source(id);
-        let (controller, owner) = self.game.objects.get_controller_and_owner(id);
-        let owner = owner.expect("A card being played must have an owner");
-        let controller = controller.unwrap_or(owner);
         let obj = self.game.objects.get_any(id).expect("Card not found");
 
         if let Some(effect) = obj.characteristics.types.iter().find_map(|typ| match typ {
@@ -46,7 +43,7 @@ impl Context {
             _ => None,
         }) {
             let source = id.remove(&mut self.game.objects);
-            let boxed = effect.create(self, source, StackInfo { controller, owner });
+            let boxed = effect.create(self, source);
             let (sb, _) = ShadowBorrow::<'_, Context>::new(self);
             boxed.execute(sb);
         } else {

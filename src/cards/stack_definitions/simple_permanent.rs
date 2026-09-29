@@ -20,7 +20,7 @@ impl StackDefinition for Permanent {
     type Return = BattlefieldInfo;
 
     fn execute<R: crate::rules::ability::effect::ResolutionBehaviour<Return = Self::Return>>(
-        mut guard: crate::nested_borrow::NestedBorrow<
+        guard: crate::nested_borrow::NestedBorrow<
             '_,
             '_,
             crate::rules::ability::effect::StackObject<Self, R>,
@@ -30,12 +30,20 @@ impl StackDefinition for Permanent {
     where
         Self: Sized,
     {
+        let ctx = guard.finish();
+        let (owner, controller) = ctx
+            .game
+            .objects
+            .get_controller_and_owner(ctx.game.objects.resolving_id.unwrap());
+        let owner = owner.unwrap();
+        let controller = controller.unwrap_or(owner);
+
         BattlefieldInfo {
             tapped: false,
             marked_damage: 0,
             damaged_by_deathtouch: false,
-            controller: guard.object().stack_info.controller,
-            owner: guard.object().stack_info.owner,
+            controller: controller,
+            owner: owner,
         }
     }
 
