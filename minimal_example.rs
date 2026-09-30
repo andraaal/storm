@@ -105,7 +105,7 @@ fn main() {
         .unwrap();
 
     // Print game result
-    // The expecte result is that both players pass in their upkeep and then the PlayPlayer loses, since they would need to draw a card, but their library is empty
+    // The expecte result is that both players pass every step and phase for an entire turn + Upkeep and then the PlayPlayer loses, since they would need to draw a card, but their library is empty
     println!("Result: {:?}", context.start().unwrap());
 
     // Try increasing the card count to see the players play through multiple turns without losing.
