@@ -21,7 +21,6 @@ impl Input for MyInput {
         None
     }
 
-    // The same pattern is true for all choice methods. In some contexts you are given the chance to abort, some don't. Usually you can only abort when you initiated the action (in case you can't pay the costs or something like that)
     fn choose_any(
         &mut self,
         game: &Game,
@@ -80,7 +79,14 @@ impl Input for MyInput {
     ) -> Choice<PlayerAction> {
         // Last option is always passing
         let last = choices.iter().last().unwrap().clone();
-        println!("Passing: {:?}", last);
+        println!("Turn of {:?}", game.active_player);
+        println!("{:?} has priority", game.priority);
+        println!("Action: {:?}", last);
+        println!(
+            "Step: {:?} in phase {:?}",
+            game.current_step, game.current_phase
+        );
+        println!("");
         last
     }
 }
@@ -88,7 +94,7 @@ impl Input for MyInput {
 fn main() {
     // Create deck with 7 cards
     let deck = vec![
-        &FOREST, &MOUNTAIN, &FOREST, &MOUNTAIN, &FOREST, &MOUNTAIN, &FOREST,
+        &FOREST, &MOUNTAIN, &FOREST, &MOUNTAIN, &FOREST, &MOUNTAIN, &FOREST, &FOREST,
     ];
 
     // Create a new game
@@ -101,4 +107,6 @@ fn main() {
     // Print game result
     // The expecte result is that both players pass in their upkeep and then the PlayPlayer loses, since they would need to draw a card, but their library is empty
     println!("Result: {:?}", context.start().unwrap());
+
+    // Try increasing the card count to see the players play through multiple turns without losing.
 }

@@ -18,16 +18,16 @@ pub struct Game {
     pub players: Players,
     pub objects: Objects,
 
-    pub(crate) continuous_effects: Vec<FixedAbilityGroup>,
-    pub(crate) replacement_effects: Vec<ReplacementEffect>,
+    pub continuous_effects: Vec<FixedAbilityGroup>,
+    pub replacement_effects: Vec<ReplacementEffect>,
 
-    pub(crate) current_timestamp: Timestamp,
-    pub(crate) current_step: Step,
-    pub(crate) current_phase: Phase,
-    pub(crate) queued_steps: VecDeque<Step>,
-    pub(crate) priority: PlayerId,
-    pub(crate) last_non_passed_priority: PlayerId,
-    pub(crate) active_player: PlayerId,
+    pub current_timestamp: Timestamp,
+    pub current_step: Step,
+    pub current_phase: Phase,
+    pub queued_steps: VecDeque<Step>,
+    pub priority: PlayerId,
+    pub last_non_passed_priority: PlayerId,
+    pub active_player: PlayerId,
 }
 
 impl Game {

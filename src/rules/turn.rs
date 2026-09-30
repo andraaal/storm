@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Phase {
+pub enum Phase {
     Beginning,
     Main,
     Combat,
@@ -7,7 +7,7 @@ pub(crate) enum Phase {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Step {
+pub enum Step {
     Untap,
     Upkeep,
     Draw,
@@ -22,7 +22,7 @@ pub(crate) enum Step {
 }
 
 impl Step {
-    pub(crate) fn phase(&self) -> Phase {
+    pub fn phase(&self) -> Phase {
         match self {
             Step::Untap => Phase::Beginning,
             Step::Upkeep => Phase::Beginning,
@@ -39,7 +39,7 @@ impl Step {
     }
 }
 
-pub(crate) const TURN_STEPS: [Step; 12] = [
+pub const TURN_STEPS: [Step; 12] = [
     Step::Untap,
     Step::Upkeep,
     Step::Draw,
@@ -54,7 +54,7 @@ pub(crate) const TURN_STEPS: [Step; 12] = [
     Step::Cleanup,
 ];
 
-pub(crate) const COMBAT_STEPS: [Step; 5] = [
+pub const COMBAT_STEPS: [Step; 5] = [
     Step::BeginningOfCombat,
     Step::DeclareAttackers,
     Step::DeclareBlockers,
@@ -62,6 +62,6 @@ pub(crate) const COMBAT_STEPS: [Step; 5] = [
     Step::EndOfCombat,
 ];
 
-pub(crate) const ENDING_STEPS: [Step; 2] = [Step::EndStep, Step::Cleanup];
-pub(crate) const MAIN_STEPS: [Step; 1] = [Step::MainStep];
-pub(crate) const BEGINNING_STEPS: [Step; 3] = [Step::Untap, Step::Upkeep, Step::Draw];
+pub const ENDING_STEPS: [Step; 2] = [Step::EndStep, Step::Cleanup];
+pub const MAIN_STEPS: [Step; 1] = [Step::MainStep];
+pub const BEGINNING_STEPS: [Step; 3] = [Step::Untap, Step::Upkeep, Step::Draw];

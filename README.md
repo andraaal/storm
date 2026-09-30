@@ -4,35 +4,16 @@ A MTG rules engine written in Rust
 Currently under active development.
 
 ## Setup
-Create an `Input` implementation to provide player decisions, then build a
-context with two deck with at least 7 cards each. The example assumes `MyInput` implements the Input
-trait:
+1. Install Rust: [Rust](https://rust-lang.org/tools/install/)
+2. Go into your project folder an run `cargo init`
+3. Then go into `Cargo.toml` and add this entry under `[dependencies]`: `storm-engine = "0.1"`
+4. Copy the code from `minimal_example.rs` into `src/main.rs`
+5. Build and execute with `cargo run`
 
-```rust
-use storm::{ContextBuilder, FOREST};
+### Explanation
+First there is a struct `MyInput`, which implements the trait `Input`. This serves as the source of input for the engine. Then (at the end of the example file) you create a sample deck from card constants provided by the library.
 
-// In the input trait you have to implement callbacks that provide desicions for the game
-struct MyInput;
-
-fn main() -> Result<(), storm::EngineError> {
-    let deck = vec![
-        &FOREST, &FOREST, &FOREST, &FOREST,
-        &FOREST, &FOREST, &FOREST,
-    ];
-
-    let mut game = ContextBuilder::new(Box::new(MyInput))
-        .with_play_deck(deck.clone())
-        .with_draw_deck(deck)
-        .build()?;
-
-    let result = game.start()?;
-    println!("Game result: {result:?}");
-    Ok(())
-}
-```
-
-`game.start()` shuffles both libraries, draws the opening hands, and runs
-the game loop using decisions from `Input`.
+In the context builder you put everything together to obtain a runnable game. Calling `.start()` starts the game and blocks execution until it is finished. It returns the result of the game. In this minimal example the players don't do anything and just draw cards until the starting player loses, because they run out of cards.
 
 ## Implemented cards
 Currently available card definitions: `FOREST`, `MOUNTAIN`, `PLAINS`,
