@@ -25,7 +25,7 @@ impl Context {
     }
 
     fn possible_actions(&self) -> Vec<PlayerAction> {
-        let mut ids = match self.game.priority {
+        let hand_ids = match self.game.priority {
             PlayerId::DrawPlayer => self
                 .game
                 .objects
@@ -42,14 +42,20 @@ impl Context {
                 .collect::<Vec<_>>(),
         };
 
-        for (id, obj) in self.game.objects.iter() {
-            if !obj.characteristics.activated_abilities.is_empty() {
-                ids.push(id);
-            }
-        }
+        let ability_ids = self
+            .game
+            .objects
+            .iter()
+            .filter_map(|(id, obj)| {
+                (!obj.characteristics.activated_abilities.is_empty()).then_some(id)
+            })
+            .collect::<Vec<_>>();
 
-        let mut actions = Vec::with_capacity(ids.len() + 1);
-        for id in ids {
+        let mut actions = Vec::with_capacity(hand_ids.len() + ability_ids.len() + 1);
+        for id in hand_ids {
+            actions.push(PlayerAction::PlayCard(id));
+        }
+        for id in ability_ids {
             actions.push(PlayerAction::ActivateAbility(id));
         }
         actions.push(PlayerAction::PassPriority);

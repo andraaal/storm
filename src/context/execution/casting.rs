@@ -58,9 +58,9 @@ impl Context {
             ObjectType::Land { effect, .. } => Some(effect.clone()),
             _ => None,
         }) {
-            let source = id.remove(&mut self.game.objects);
-            let boxed = effect.create(self, source);
+            let source = obj.clone();
             self.game.objects.resolving_id = Some(id);
+            let boxed = effect.create(self, source);
             let (sb, _) = ShadowBorrow::<'_, Context>::new(self);
             boxed.execute(sb);
             self.game.objects.resolving_id = None;

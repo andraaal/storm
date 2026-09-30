@@ -31,7 +31,7 @@ impl StackDefinition for Permanent {
         Self: Sized,
     {
         let ctx = guard.finish();
-        let (owner, controller) = ctx
+        let (controller, owner) = ctx
             .game
             .objects
             .get_controller_and_owner(ctx.game.objects.resolving_id.unwrap());
