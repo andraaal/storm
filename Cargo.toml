@@ -2,6 +2,10 @@
 name = "storm"
 version = "0.1.0"
 edition = "2024"
+license-file = "LICENSE"
+description = "A rules engien for MTG"
+repository = "https://github.com/andraaal/storm"
+readme = "README.md"
 
 [dependencies]
 slotmap = "1.1"
