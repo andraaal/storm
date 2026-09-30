@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Choice<T: PartialEq + Clone> {
     option: T,
 }

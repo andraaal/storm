@@ -32,7 +32,7 @@ pub(crate) trait Target {
 }
 
 #[derive(From, TryInto, Clone, Copy, Debug, PartialEq)]
-pub(crate) enum AnyTarget {
+pub enum AnyTarget {
     Battlefield(BattlefieldId),
     Exile(ExileId),
     SpellStack(SpellStackId),

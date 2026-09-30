@@ -127,11 +127,8 @@ impl Context {
                     .map(|i| i.0.into())
                     .collect::<Vec<_>>();
                 if top.len() < amount {
-                    println!(
-                        "Draw player lost; they drew {} cards, while having {amount} cards",
-                        top.len()
-                    );
-                    self.result = Some(GameResult::Winner(crate::PlayerId::DrawPlayer));
+                    println!("Draw player lost;");
+                    self.result = Some(GameResult::Winner(crate::PlayerId::PlayPlayer));
                 }
                 GameAction::MoveToHand { objects: top }
             }
@@ -145,11 +142,8 @@ impl Context {
                     .map(|i| i.0.into())
                     .collect::<Vec<_>>();
                 if top.len() < amount {
-                    println!(
-                        "Play player lost; they drew {} cards, while having {amount} cards",
-                        top.len()
-                    );
-                    self.result = Some(GameResult::Winner(crate::PlayerId::PlayPlayer));
+                    println!("Play player lost;");
+                    self.result = Some(GameResult::Winner(crate::PlayerId::DrawPlayer));
                 }
                 GameAction::MoveToHand { objects: top }
             }

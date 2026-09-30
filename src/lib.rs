@@ -19,12 +19,15 @@ pub use context::controller::{Choice, Input};
 pub use context::{Context, EngineError, GameResult};
 pub use game::Game;
 pub use game::objects::Objects;
+pub use mana::ManaColor;
 pub use rules::id::{
     AbilityStackId, AnyId, BattlefieldId, DrawGraveyardId, DrawHandId, DrawLibraryId, ExileId,
     PlayGraveyardId, PlayHandId, PlayLibraryId, SpellStackId,
 };
 pub use rules::object::const_characteristics::ConstCharacteristics;
 pub use rules::player::PlayerId;
+pub use rules::player_action::PlayerAction;
+pub use rules::target::AnyTarget;
 
 #[cfg(test)]
 mod tests {

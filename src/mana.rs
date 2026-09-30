@@ -1,9 +1,9 @@
-pub(crate) struct Mana {
-    pub(crate) color: ManaColor,
-    pub(crate) amount: u32,
+pub struct Mana {
+    pub color: ManaColor,
+    pub amount: u32,
 }
 
-pub(crate) enum ManaColor {
+pub enum ManaColor {
     White,
     Blue,
     Black,
@@ -12,7 +12,7 @@ pub(crate) enum ManaColor {
     Colorless,
 }
 
-pub(crate) struct ManaCost {
-    pub(crate) generic: u32,
-    pub(crate) colored: Vec<ManaColor>,
+pub struct ManaCost {
+    pub generic: u32,
+    pub colored: Vec<ManaColor>,
 }
