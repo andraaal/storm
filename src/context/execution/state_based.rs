@@ -1,6 +1,7 @@
 use std::ops::AddAssign;
 
 use crate::{
+    GameResult,
     context::Context,
     rules::{game_action::GameAction, object::types::ObjectType},
 };
@@ -31,10 +32,10 @@ impl Context {
 
 fn player0life(ctx: &mut Context) -> StateBasedActionResult {
     if ctx.game.players.play_player.life <= 0 {
-        panic!("Play Player lost the game, due to having <= 0 life");
+        ctx.result = Some(GameResult::Winner(crate::PlayerId::DrawPlayer))
     }
     if ctx.game.players.draw_player.life <= 0 {
-        panic!("Draw Player lost the game, due to having <= life");
+        ctx.result = Some(GameResult::Winner(crate::PlayerId::PlayPlayer))
     }
     StateBasedActionResult::NoneExecuted
 }

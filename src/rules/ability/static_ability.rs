@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::rc::Rc;
 
-use crate::cards::StaticAbilities;
+use crate::cards::Effects;
 use crate::context::Context;
 use crate::rules::condition::Condition;
 use crate::rules::game_action::GameAction;
@@ -43,7 +43,7 @@ pub(crate) enum FixedAbilityGroup {
 pub(crate) struct DynamicContinuousAbility {
     pub(crate) layer: Layer,
     pub(crate) is_cd: bool,
-    pub(crate) effect: StaticAbilities,
+    pub(crate) effect: Effects,
 }
 
 #[derive(Clone)]

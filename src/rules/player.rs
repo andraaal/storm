@@ -1,5 +1,8 @@
+use crate::rules::cost::ManaAmount;
+
 pub struct Player {
     pub life: i32,
+    pub mana: ManaAmount,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,6 +13,9 @@ pub enum PlayerId {
 
 impl Player {
     pub(crate) fn new() -> Self {
-        Player { life: 20 }
+        Player {
+            life: 20,
+            mana: ManaAmount::default(),
+        }
     }
 }

@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use derive_more::From;
+use derive_more::{From, TryInto};
 use slotmap::new_key_type;
 
 use crate::{
@@ -21,7 +21,7 @@ new_key_type! {
     pub struct DrawLibraryId;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, From)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, From, TryInto)]
 pub enum AnyId {
     Stack(SpellStackId),
     Battlefield(BattlefieldId),

@@ -3,7 +3,10 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::rules::{
-    ability::static_ability::{DynamicAbilityGroup, DynamicEffect, IntrinsicAbility},
+    ability::{
+        activated_ability::ActivatedAbility,
+        static_ability::{DynamicAbilityGroup, DynamicEffect, IntrinsicAbility},
+    },
     cost::Cost,
     id::Timestamp,
     object::{
@@ -18,7 +21,7 @@ pub(crate) struct Characteristics {
     pub(crate) casting_cost: Cost,
     pub(crate) types: Cow<'static, [ObjectType]>,
     pub(crate) super_types: FlagSet<Supertype>,
-    // pub(crate) activated_abilities: Cow<'static, [ActivatedAbility]>,
+    pub(crate) activated_abilities: Cow<'static, [ActivatedAbility]>,
     pub(crate) static_abilities: Vec<DynamicEffect>,
     // pub(crate) triggered_abilities: Cow<'static, [TriggeredAbility]>,
 }
@@ -39,7 +42,7 @@ impl Characteristics {
             casting_cost: card.casting_cost.clone(),
             types: Cow::Borrowed(card.types),
             super_types: card.super_types,
-            // activated_abilities: Cow::Borrowed(card.activated_abilities),
+            activated_abilities: Cow::Borrowed(card.activated_abilities),
             static_abilities: statics,
             // triggered_abilities: Cow::Borrowed(card.triggered_abilities),
         }

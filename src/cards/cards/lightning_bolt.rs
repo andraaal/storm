@@ -5,7 +5,7 @@ use flagset::FlagSet;
 use crate::{
     cards::Spells,
     rules::{
-        cost::{Cost, ManaCost},
+        cost::{Cost, ManaAmount},
         object::{const_characteristics::ConstCharacteristics, types::ObjectType},
     },
 };
@@ -13,7 +13,7 @@ use crate::{
 pub const LIGHTNING_BOLT: ConstCharacteristics = ConstCharacteristics {
     name: "Lightning Bolt",
     casting_cost: Cost {
-        mana_cost: ManaCost {
+        mana_cost: ManaAmount {
             generic: 0,
             red: 1,
             green: 0,
@@ -22,13 +22,14 @@ pub const LIGHTNING_BOLT: ConstCharacteristics = ConstCharacteristics {
             black: 0,
             colorless: 0,
         },
+        tapping: false,
     },
     types: &[ObjectType::Instant {
         subtypes: Cow::Borrowed(&[]),
         effect: Spells::Damage3,
     }],
     super_types: FlagSet::empty(),
-    // activated_abilities: &[],
+    activated_abilities: &[],
     static_abilities: &[],
     // triggered_abilities: &[],
 };

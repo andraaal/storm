@@ -37,7 +37,7 @@ pub(crate) mod behaviour {
     pub(crate) mod default_info;
 }
 
-macro_rules! effects {
+macro_rules! stack_effects {
     (
         $(
             $name:ident: $type:ty
@@ -74,6 +74,23 @@ macro_rules! effects {
                     )*
                 }
             }
+
+            pub fn create_cancellable(&self, ctx: &mut Context, source: GameObject) -> Option<Box<dyn Spell>> {
+                Some(match self {
+                    $(
+                        Self::$name => {
+                            Box::new(StackObject::<$type, ToGraveyard> {
+                                targets: <<$type as StackDefinition>::TargetSelection as SelectorList>::choose_cancellable(ctx)?,
+                                x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
+                                modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
+                                data: <$type as StackDefinition>::choose_data(ctx),
+                                source,
+                                kind: std::marker::PhantomData::<ToGraveyard>,
+                            })
+                        }
+                    )*
+                })
+            }
         }
 
         impl StackAbilities {
@@ -97,7 +114,7 @@ macro_rules! effects {
     };
 }
 
-macro_rules! static_abilities {
+macro_rules! effects {
     (
         $(
             $name:ident: $type:ty
@@ -105,13 +122,13 @@ macro_rules! static_abilities {
     ) => {
 
         #[derive(Clone, Copy, From)]
-        pub enum StaticAbilities {
+        pub enum Effects {
             $(
                 $name,
             )*
         }
 
-        impl StaticAbilities {
+        impl Effects {
             pub fn apply(&self, ctx: &mut Context) {
                 match self {
                     $(
@@ -189,18 +206,35 @@ macro_rules! permanent_effects {
                     )*
                 }
             }
+
+            pub fn create_cancellable(&self, ctx: &mut Context, source: GameObject) -> Option<Box<dyn Spell>> {
+                Some(match self {
+                    $(
+                        Self::$name => {
+                            Box::new(StackObject::<$type, ToBattlefield> {
+                                targets: <<$type as StackDefinition>::TargetSelection as SelectorList>::choose_cancellable(ctx)?,
+                                x: <<$type as StackDefinition>::X as XVal>::choose(ctx),
+                                modes: <<$type as StackDefinition>::Modes as Modes>::choose(ctx),
+                                data: <$type as StackDefinition>::choose_data(ctx),
+                                source,
+                                kind: std::marker::PhantomData::<ToBattlefield>,
+                            })
+                        }
+                    )*
+                })
+            }
         }
     };
 }
 
-// Most Permanents don't need this; Can do things like this permanent enters tapped, ie modify BattlefieldInfo before the object enters
+// Most Permanents just use trivial; Can do things like this permanent enters tapped, ie modify BattlefieldInfo before the object enters
 permanent_effects![Trivial: Permanent];
 
-// Entries with a single Behaviour to be used in static abilities
-static_abilities![Plus1_1: ChangePT<1, 1>];
+// Entries with a single Behaviour to be used in static/activated abilities
+effects![Plus1_1: ChangePT<1, 1>];
 
 // Entries that produce an effect that can be used as a ability on the stack or an instant/sorcery spell
-effects![
+stack_effects![
     Plus3_3: NoData<(ChangePT<3, 3>,)>,
     Damage3: SourceData<(DealDamage<1, 3>,)>,
 ];

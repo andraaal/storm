@@ -3,13 +3,13 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::cards::Spells;
-use crate::rules::cost::{Cost, ManaCost};
+use crate::rules::cost::{Cost, ManaAmount};
 use crate::rules::object::{const_characteristics::ConstCharacteristics, types::ObjectType};
 
 pub const GIANT_GROWTH: ConstCharacteristics = ConstCharacteristics {
     name: "Giant Growth",
     casting_cost: Cost {
-        mana_cost: ManaCost {
+        mana_cost: ManaAmount {
             generic: 0,
             red: 0,
             green: 1,
@@ -18,13 +18,14 @@ pub const GIANT_GROWTH: ConstCharacteristics = ConstCharacteristics {
             black: 0,
             colorless: 0,
         },
+        tapping: false,
     },
     types: &[ObjectType::Instant {
         subtypes: Cow::Borrowed(&[]),
         effect: Spells::Plus3_3,
     }],
     super_types: FlagSet::empty(),
-    // activated_abilities: &[],
+    activated_abilities: &[],
     static_abilities: &[],
     // triggered_abilities: &[],
 };

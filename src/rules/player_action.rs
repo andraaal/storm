@@ -4,4 +4,5 @@ use crate::rules::id::AnyId;
 pub enum PlayerAction {
     PassPriority,
     PlayCard(AnyId),
+    ActivateAbility(AnyId),
 }

@@ -1,3 +1,4 @@
+use crate::GameResult;
 use crate::game::object_iter::GameObjectIterExt;
 use crate::rules::ability::static_ability::IntrinsicAbility;
 use crate::rules::id::{AnyId, BattlefieldId};
@@ -12,6 +13,7 @@ impl Context {
     /// Every GameAction itself is atomic, unless it issues further GameActions. These will be checked for replacement and triggered effects and then immediately executed.
     pub(crate) fn execute(&mut self, actions: Vec<GameAction>) {
         self.execute_multiple(actions);
+        self.redo_layering();
     }
 
     fn execute_multiple(&mut self, actions: Vec<GameAction>) {
@@ -128,7 +130,8 @@ impl Context {
                     println!(
                         "Draw player lost; they drew {} cards, while having {amount} cards",
                         top.len()
-                    )
+                    );
+                    self.result = Some(GameResult::Winner(crate::PlayerId::DrawPlayer));
                 }
                 GameAction::MoveToHand { objects: top }
             }
@@ -145,7 +148,8 @@ impl Context {
                     println!(
                         "Play player lost; they drew {} cards, while having {amount} cards",
                         top.len()
-                    )
+                    );
+                    self.result = Some(GameResult::Winner(crate::PlayerId::PlayPlayer));
                 }
                 GameAction::MoveToHand { objects: top }
             }

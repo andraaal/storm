@@ -5,7 +5,8 @@ use flagset::FlagSet;
 use crate::{
     cards::PermanentEffects,
     rules::{
-        cost::{Cost, ManaCost},
+        ability::activated_ability::ActivatedAbility,
+        cost::{Cost, ManaAmount},
         object::{
             const_characteristics::ConstCharacteristics,
             types::{LandType, ObjectType},
@@ -14,7 +15,7 @@ use crate::{
 };
 
 const LAND_COST: Cost = Cost {
-    mana_cost: ManaCost {
+    mana_cost: ManaAmount {
         generic: 0,
         red: 0,
         green: 0,
@@ -23,6 +24,7 @@ const LAND_COST: Cost = Cost {
         black: 0,
         colorless: 0,
     },
+    tapping: false,
 };
 
 pub const PLAINS: ConstCharacteristics = ConstCharacteristics {
@@ -34,6 +36,16 @@ pub const PLAINS: ConstCharacteristics = ConstCharacteristics {
     }],
     super_types: FlagSet::empty(),
     static_abilities: &[],
+    activated_abilities: &[ActivatedAbility {
+        cost: Cost {
+            mana_cost: ManaAmount::def(),
+            tapping: true,
+        },
+        effect: |ctx| {
+            let priority = ctx.game.priority;
+            ctx.game.players[priority].mana.white += 1;
+        },
+    }],
 };
 
 pub const FOREST: ConstCharacteristics = ConstCharacteristics {
@@ -45,6 +57,16 @@ pub const FOREST: ConstCharacteristics = ConstCharacteristics {
     }],
     super_types: FlagSet::empty(),
     static_abilities: &[],
+    activated_abilities: &[ActivatedAbility {
+        cost: Cost {
+            mana_cost: ManaAmount::def(),
+            tapping: true,
+        },
+        effect: |ctx| {
+            let priority = ctx.game.priority;
+            ctx.game.players[priority].mana.green += 1;
+        },
+    }],
 };
 
 pub const MOUNTAIN: ConstCharacteristics = ConstCharacteristics {
@@ -56,4 +78,14 @@ pub const MOUNTAIN: ConstCharacteristics = ConstCharacteristics {
     }],
     super_types: FlagSet::empty(),
     static_abilities: &[],
+    activated_abilities: &[ActivatedAbility {
+        cost: Cost {
+            mana_cost: ManaAmount::def(),
+            tapping: true,
+        },
+        effect: |ctx| {
+            let priority = ctx.game.priority;
+            ctx.game.players[priority].mana.red += 1;
+        },
+    }],
 };

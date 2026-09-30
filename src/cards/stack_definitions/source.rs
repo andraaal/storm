@@ -40,10 +40,7 @@ impl<B: BehaviourList<Data = (AnyId,)>> StackDefinition for SourceData<B> {
         B::apply(ctx, targets, data);
     }
 
-    fn choose_data(
-        _ctx: &mut crate::context::Context,
-    ) -> <Self::Behaviours as BehaviourList>::Data {
-        // Get currently cast AnyId from context
-        todo!()
+    fn choose_data(ctx: &mut crate::context::Context) -> <Self::Behaviours as BehaviourList>::Data {
+        (ctx.game.objects.resolving_id.unwrap(),)
     }
 }

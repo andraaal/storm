@@ -10,10 +10,17 @@ use crate::rules::{
     zone::{BattlefieldInfo, ExileInfo, StackInfo},
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StackId {
+    Spell(SpellStackId),
+    Ability(AbilityStackId),
+}
+
 pub struct Objects {
     pub battlefield: MyMap<BattlefieldId, (BattlefieldInfo, GameObject)>,
     pub spell_stack: MyMap<SpellStackId, (StackInfo, Box<dyn Spell>)>,
     pub ability_stack: MyMap<AbilityStackId, (StackInfo, Box<dyn Ability>)>,
+    stack_order: Vec<StackId>,
     pub play_hand: MyMap<PlayHandId, GameObject>,
     pub draw_hand: MyMap<DrawHandId, GameObject>,
     pub exile: MyMap<ExileId, (ExileInfo, GameObject)>,
@@ -45,6 +52,7 @@ impl Objects {
             battlefield: MyMap::new(),
             spell_stack: MyMap::new(),
             ability_stack: MyMap::new(),
+            stack_order: Vec::new(),
             exile: MyMap::new(),
             play_hand: MyMap::new(),
             draw_hand: MyMap::new(),
@@ -84,6 +92,48 @@ impl Objects {
         }
     }
 
+    pub(crate) fn insert_spell_stack(
+        &mut self,
+        value: (StackInfo, Box<dyn Spell>),
+    ) -> SpellStackId {
+        let id = self.spell_stack.insert(value);
+        self.stack_order.push(StackId::Spell(id));
+        id
+    }
+
+    pub(crate) fn insert_ability_stack(
+        &mut self,
+        value: (StackInfo, Box<dyn Ability>),
+    ) -> AbilityStackId {
+        let id = self.ability_stack.insert(value);
+        self.stack_order.push(StackId::Ability(id));
+        id
+    }
+
+    pub(crate) fn remove_ability_stack(
+        &mut self,
+        id: AbilityStackId,
+    ) -> Option<(StackInfo, Box<dyn Ability>)> {
+        let value = self.ability_stack.remove(id);
+        if value.is_some() {
+            self.remove_from_stack_order(StackId::Ability(id));
+        }
+        value
+    }
+
+    pub(crate) fn stack_order(&self) -> impl Iterator<Item = StackId> + '_ {
+        self.stack_order.iter().copied().filter(|id| match id {
+            StackId::Spell(id) => self.spell_stack.get(*id).is_some(),
+            StackId::Ability(id) => self.ability_stack.get(*id).is_some(),
+        })
+    }
+
+    fn remove_from_stack_order(&mut self, id: StackId) {
+        if let Some(pos) = self.stack_order.iter().position(|stack_id| *stack_id == id) {
+            self.stack_order.remove(pos);
+        }
+    }
+
     pub(crate) fn values_mut(&mut self) -> impl Iterator<Item = &mut GameObject> {
         self.battlefield
             .values_mut()
@@ -114,6 +164,24 @@ impl Objects {
             .chain(self.draw_library.iter_mut().map(|(id, v)| (id.into(), v)))
             .chain(self.play_library.iter_mut().map(|(id, v)| (id.into(), v)))
             .chain(self.exile.iter_mut().map(|(id, v)| (id.into(), &mut v.1)))
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (AnyId, &GameObject)> {
+        self.battlefield
+            .iter()
+            .map(|(id, v)| (id.into(), &v.1))
+            .chain(
+                self.spell_stack
+                    .iter()
+                    .map(|(id, v)| (id.into(), v.1.get_source())),
+            )
+            .chain(self.draw_graveyard.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.play_graveyard.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.draw_hand.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.play_hand.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.draw_library.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.play_library.iter().map(|(id, v)| (id.into(), v)))
+            .chain(self.exile.iter().map(|(id, v)| (id.into(), &v.1)))
     }
 
     pub(crate) fn values(&self) -> impl Iterator<Item = &GameObject> {
@@ -373,6 +441,10 @@ impl AnyId {
             AnyId::Stack(id) => objects
                 .spell_stack
                 .remove(id)
+                .map(|value| {
+                    objects.remove_from_stack_order(StackId::Spell(id));
+                    value
+                })
                 .expect("Spell Stack Object not found")
                 .1
                 .take_source(),

@@ -5,7 +5,7 @@ use flagset::FlagSet;
 use crate::{
     cards::PermanentEffects,
     rules::{
-        cost::{Cost, ManaCost},
+        cost::{Cost, ManaAmount},
         object::{
             const_characteristics::ConstCharacteristics,
             types::{CreatureType, ObjectType},
@@ -16,7 +16,7 @@ use crate::{
 pub const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
     name: "Bear Cub",
     casting_cost: Cost {
-        mana_cost: ManaCost {
+        mana_cost: ManaAmount {
             generic: 1,
             red: 0,
             green: 1,
@@ -25,6 +25,7 @@ pub const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
             black: 0,
             colorless: 0,
         },
+        tapping: false,
     },
     types: &[ObjectType::Creature {
         power: 2,
@@ -33,7 +34,7 @@ pub const BEAR_CUB: ConstCharacteristics = ConstCharacteristics {
         effect: PermanentEffects::Trivial,
     }],
     super_types: FlagSet::empty(),
-    // activated_abilities: &[],
+    activated_abilities: &[],
     static_abilities: &[],
     // triggered_abilities: &[],
 };

@@ -18,3 +18,11 @@
 //     // Takes the Game and its source
 //     pub(crate) get_effect: fn(&mut Game, AnyId) -> StackObject,
 // }
+
+use crate::{Context, rules::cost::Cost};
+
+#[derive(Clone)]
+pub(crate) struct ActivatedAbility {
+    pub(crate) cost: Cost,
+    pub(crate) effect: fn(ctx: &mut Context),
+}

@@ -1,4 +1,6 @@
 use crate::context::Context;
+use crate::rules::ability::static_ability::FixedAbilityGroup;
+use crate::rules::condition::Condition;
 use crate::rules::game_action::GameAction;
 use crate::rules::player::PlayerId;
 use crate::rules::player_action::PlayerAction;
@@ -14,12 +16,16 @@ impl Context {
             match action {
                 PlayerAction::PassPriority => self.pass_player_priority(),
                 PlayerAction::PlayCard(id) => self.play_card(id),
+                PlayerAction::ActivateAbility(id) => self.activate_ability(id),
             }
+            self.redo_layering();
+            self.exec_state_based();
+            self.redo_layering();
         }
     }
 
     fn possible_actions(&self) -> Vec<PlayerAction> {
-        let ids = match self.game.priority {
+        let mut ids = match self.game.priority {
             PlayerId::DrawPlayer => self
                 .game
                 .objects
@@ -36,9 +42,15 @@ impl Context {
                 .collect::<Vec<_>>(),
         };
 
+        for (id, obj) in self.game.objects.iter() {
+            if !obj.characteristics.activated_abilities.is_empty() {
+                ids.push(id);
+            }
+        }
+
         let mut actions = Vec::with_capacity(ids.len() + 1);
         for id in ids {
-            actions.push(PlayerAction::PlayCard(id));
+            actions.push(PlayerAction::ActivateAbility(id));
         }
         actions.push(PlayerAction::PassPriority);
         actions
@@ -73,6 +85,20 @@ impl Context {
 
             // Until ...-step effects expire (upcoming step)
             // At the beginning of ...-step triggers are added to pending
+            let mut end = self.game.continuous_effects.len();
+            let mut i = 0;
+            while i < end {
+                let effect = &self.game.continuous_effects[i];
+                match effect {
+                    FixedAbilityGroup::FixedContinuous(items) => {
+                        if matches!(items[0].end, Condition::EndOfTurn) {
+                            self.game.continuous_effects.swap_remove(i);
+                            end -= 1;
+                        }
+                    }
+                    FixedAbilityGroup::FixedReplacement(_) => i += 1,
+                }
+            }
             self.exec_turn_based_actions();
 
             // Untap and cleanup have no priority window.  Cleanup is the
@@ -149,7 +175,7 @@ impl Context {
             | Step::DeclareAttackers
             | Step::DeclareBlockers
             | Step::EndOfCombat => {
-                todo!("Combat not yet implemented");
+                // todo!("Combat not yet implemented");
             }
             Step::EndStep | Step::MainStep | Step::Upkeep => {}
         }

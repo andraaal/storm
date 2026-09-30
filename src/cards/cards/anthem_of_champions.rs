@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use flagset::FlagSet;
 
 use crate::{
-    cards::{PermanentEffects, StaticAbilities},
+    cards::{Effects, PermanentEffects},
     rules::{
         ability::static_ability::{DynamicAbility, DynamicAbilityGroup, DynamicContinuousAbility},
-        cost::{Cost, ManaCost},
+        cost::{Cost, ManaAmount},
         layer::{Layer, layers},
         object::{const_characteristics::ConstCharacteristics, types::ObjectType},
         zone::{ZoneKind, zones},
@@ -16,7 +16,7 @@ use crate::{
 pub const ANTHEM_OF_CHAMPIONS: ConstCharacteristics = ConstCharacteristics {
     name: "Anthem of Champions",
     casting_cost: Cost {
-        mana_cost: ManaCost {
+        mana_cost: ManaAmount {
             generic: 0,
             red: 0,
             green: 1,
@@ -25,6 +25,7 @@ pub const ANTHEM_OF_CHAMPIONS: ConstCharacteristics = ConstCharacteristics {
             black: 0,
             colorless: 0,
         },
+        tapping: false,
     },
     types: &[ObjectType::Enchantment {
         subtypes: Cow::Borrowed(&[]),
@@ -39,9 +40,9 @@ pub const ANTHEM_OF_CHAMPIONS: ConstCharacteristics = ConstCharacteristics {
             DynamicContinuousAbility {
                 layer: Layer::ChangePT,
                 is_cd: false,
-                effect: StaticAbilities::Plus1_1,
+                effect: Effects::Plus1_1,
             },
         ])),
     }],
-    // triggered_abilities: &[],
+    activated_abilities: &[],
 };
