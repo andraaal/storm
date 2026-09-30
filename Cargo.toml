@@ -6,6 +6,7 @@ license-file = "LICENSE"
 description = "A rules engien for MTG"
 repository = "https://github.com/andraaal/storm"
 readme = "README.md"
+exclude = ["random TODOs.md"]
 
 [dependencies]
 slotmap = "1.1"
