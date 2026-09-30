@@ -1,5 +1,4 @@
-#![allow(dead_code, private_interfaces)]
-#![feature(checked_type_aliases)]
+#![allow(dead_code, private_interfaces, unused_macros)]
 #![feature(min_specialization)]
 
 mod cards;
