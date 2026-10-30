@@ -68,6 +68,6 @@ pub const fn zones(zones: &[ZoneKind]) -> Zones {
         i += 1;
     }
 
-    // SAFETY: The discriminant of every ZoneKind is by definition a valid bit in the Zones bitset.
+    // SAFETY: The discriminant of every ZoneKind is a valid bit in the Zones bitset, because there are no custom discriminants in the definition.
     unsafe { Zones::new_unchecked(bits) }
 }

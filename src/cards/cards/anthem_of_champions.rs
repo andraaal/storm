@@ -32,7 +32,6 @@ pub const ANTHEM_OF_CHAMPIONS: ConstCharacteristics = ConstCharacteristics {
         effect: PermanentEffects::Trivial,
     }],
     super_types: FlagSet::empty(),
-    // activated_abilities: &[],
     static_abilities: &[DynamicAbility {
         active_zones: zones(&[ZoneKind::Battlefield]),
         layers: layers(&[Layer::ChangePT]),
